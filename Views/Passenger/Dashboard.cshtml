@@ -20,6 +20,22 @@
         </a>
     </div>
 
+    <div class="tm-dashboard-booking-action">
+        <a asp-controller="Passenger"
+           asp-action="Book"
+           class="tm-btn tm-btn-primary">
+            Book a ride
+        </a>
+    </div>
+
+    @if (TempData["BookingSuccess"] is string bookingSuccess)
+    {
+        <div class="tm-dashboard-note" role="status">
+            @bookingSuccess
+        </div>
+    }
+
+
     <section class="tm-dashboard-stats" aria-label="Ride statistics">
         <article class="tm-stat-card">
             <div class="tm-stat-icon">↗</div>
