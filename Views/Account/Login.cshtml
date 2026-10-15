@@ -1,0 +1,137 @@
+@model TeslaMAMA.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+<script src="~/js/auth.js" asp-append-version="true"></script>
+
+<main class="auth-page">
+    <section class="auth-shell">
+        <aside class="auth-intro">
+            <a class="auth-brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">T</span>
+                <span>TeslaMAMA</span>
+            </a>
+
+            <div class="intro-content">
+                <span class="eyebrow">WELCOME BACK</span>
+                <h1>Your next journey starts here.</h1>
+                <p>
+                    Sign in to reconnect with your rides and enjoy a smarter
+                    way to move around the city.
+                </p>
+
+                <div class="intro-feature">
+                    <span class="feature-icon">01</span>
+                    <div>
+                        <strong>Your journeys, together</strong>
+                        <span>Keep your ride-sharing experience connected.</span>
+                    </div>
+                </div>
+
+                <div class="intro-feature">
+                    <span class="feature-icon">02</span>
+                    <div>
+                        <strong>Simple and seamless</strong>
+                        <span>Get back to what matters with fewer steps.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-footer">
+                <span>Designed for the way your city moves.</span>
+                <span>© @DateTime.Now.Year TeslaMAMA</span>
+            </div>
+        </aside>
+
+        <section class="auth-form-panel">
+            <div class="auth-form-inner">
+                <div class="mobile-brand">
+                    <span class="brand-mark">T</span>
+                    <span>TeslaMAMA</span>
+                </div>
+
+                <div class="form-heading">
+                    <span class="eyebrow">WELCOME BACK</span>
+                    <h2>Sign in to TeslaMAMA</h2>
+                    <p>Enter your account details to continue.</p>
+                </div>
+
+                <form asp-controller="Account"
+                      asp-action="Login"
+                      asp-route-returnUrl="@ViewData["ReturnUrl"]"
+                      method="post">
+
+                    <div asp-validation-summary="ModelOnly"
+                         class="validation-summary"></div>
+
+                    <div class="field-group">
+                        <label asp-for="Email"></label>
+
+                        <input asp-for="Email"
+                               class="auth-input"
+                               placeholder="you@example.com"
+                               autocomplete="username" />
+
+                        <span asp-validation-for="Email"
+                              class="field-error"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="Password"></label>
+
+                        <div class="password-wrapper">
+                            <input asp-for="Password"
+                                   class="auth-input"
+                                   placeholder="Enter your password"
+                                   autocomplete="current-password" />
+
+                            <button type="button"
+                                    class="password-toggle"
+                                    aria-label="Show password"
+                                    aria-pressed="false"
+                                    onclick="togglePassword('Password', this)">
+
+                                <svg viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     focusable="false">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <span asp-validation-for="Password"
+                              class="field-error"></span>
+                    </div>
+
+                    <div class="login-options">
+                        <label class="remember-option">
+                            <input asp-for="RememberMe" />
+                            <span>Remember me</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="auth-submit">
+                        <span>Sign in</span>
+                        <span aria-hidden="true">→</span>
+                    </button>
+                </form>
+
+                <div class="auth-switch">
+                    Don't have an account?
+                    <a asp-controller="Account" asp-action="Register">
+                        Create account
+                    </a>
+                </div>
+            </div>
+        </section>
+    </section>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
