@@ -1,8 +1,201 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="tm-hero">
+    <div class="tm-hero-content">
+        <span class="tm-eyebrow">
+            <span class="tm-status-dot"></span>
+            SMARTER SHARED TRAVEL
+        </span>
+
+        <h1>
+            Your journey.<br />
+            <span>Shared smarter.</span>
+        </h1>
+
+        <p class="tm-hero-description">
+            Discover a smarter way to travel across Dhaka.
+            Share compatible routes, make the most of every seat,
+            and enjoy a more convenient journey with TeslaMAMA.
+        </p>
+
+        <div class="tm-hero-actions">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   asp-fragment="book-ride"
+                   class="tm-btn tm-btn-primary">
+                    Explore ride pooling
+                    <span aria-hidden="true">→</span>
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Account"
+                   asp-action="Login"
+                   class="tm-btn tm-btn-primary">
+                    Find your next ride
+                    <span aria-hidden="true">→</span>
+                </a>
+
+                <a asp-controller="Account"
+                   asp-action="Register"
+                   class="tm-btn tm-btn-outline">
+                    Get started
+                </a>
+            }
+        </div>
+
+        <div class="tm-hero-note">
+            <span aria-hidden="true">✦</span>
+            Built around shared rides and compatible routes
+        </div>
+    </div>
+
+    <div class="tm-hero-visual">
+        <div class="tm-visual-glow"></div>
+
+        <div class="tm-route-card">
+            <div class="tm-route-header">
+                <div>
+                    <span class="tm-card-label">YOUR CITY</span>
+                    <h2>Dhaka, Bangladesh</h2>
+                </div>
+                <span class="tm-live-badge">
+                    <span class="tm-status-dot"></span>
+                    Ride pooling
+                </span>
+            </div>
+
+            <div class="tm-route-map">
+                <div class="tm-route-line"></div>
+
+                <div class="tm-route-point tm-point-start">
+                    <span class="tm-route-marker"></span>
+                    <div>
+                        <strong>Banani</strong>
+                        <small>Pickup zone</small>
+                    </div>
+                </div>
+
+                <div class="tm-route-point tm-point-end">
+                    <span class="tm-route-marker tm-marker-end"></span>
+                    <div>
+                        <strong>Mohakhali</strong>
+                        <small>Destination zone</small>
+                    </div>
+                </div>
+
+                <div class="tm-route-car" aria-hidden="true">🚘</div>
+            </div>
+
+            <div class="tm-route-footer">
+                <div>
+                    <span class="tm-card-label">THE IDEA</span>
+                    <strong>One compatible route</strong>
+                </div>
+                <div class="tm-seat-icon" aria-hidden="true">♧</div>
+            </div>
+        </div>
+
+        <div class="tm-floating-card">
+            <span class="tm-floating-icon">↗</span>
+            <div>
+                <strong>Travel together</strong>
+                <small>Share compatible journeys</small>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="tm-trust-strip">
+    <div>
+        <span class="tm-trust-icon">⌖</span>
+        <span>Zone-based journeys</span>
+    </div>
+    <div>
+        <span class="tm-trust-icon">♧</span>
+        <span>Shared vehicle capacity</span>
+    </div>
+    <div>
+        <span class="tm-trust-icon">↗</span>
+        <span>Individual ride tracking</span>
+    </div>
+</section>
+
+<section class="tm-section" id="how-it-works">
+    <div class="tm-section-heading">
+        <span class="tm-eyebrow">SIMPLE BY DESIGN</span>
+        <h2>Shared rides, <span>made simple.</span></h2>
+        <p>
+            From choosing your route to following your ride,
+            TeslaMAMA is designed around a straightforward journey.
+        </p>
+    </div>
+
+    <div class="tm-feature-grid">
+        <article class="tm-feature-card">
+            <div class="tm-feature-icon">⌖</div>
+            <span class="tm-step-number">STEP 01</span>
+            <h3>Choose your route</h3>
+            <p>
+                Select your pickup zone, destination, and the
+                number of seats you need.
+            </p>
+        </article>
+
+        <article class="tm-feature-card">
+            <div class="tm-feature-icon">♧</div>
+            <span class="tm-step-number">STEP 02</span>
+            <h3>Find a compatible pool</h3>
+            <p>
+                Your ride request can be matched with a suitable
+                shared pool when the route and available capacity fit.
+            </p>
+        </article>
+
+        <article class="tm-feature-card">
+            <div class="tm-feature-icon">↗</div>
+            <span class="tm-step-number">STEP 03</span>
+            <h3>Follow your journey</h3>
+            <p>
+                Keep track of your individual ride request, its
+                status, and your fare.
+            </p>
+        </article>
+    </div>
+</section>
+
+<section class="tm-cta-section" id="book-ride">
+    <div class="tm-cta-content">
+        <span class="tm-eyebrow">YOUR NEXT JOURNEY STARTS HERE</span>
+        <h2>Make your next ride<br />a shared one.</h2>
+        <p>
+            Join TeslaMAMA and discover a more connected way
+            to travel across Dhaka.
+        </p>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Home"
+               asp-action="Index"
+               class="tm-btn tm-btn-light">
+                Welcome to TeslaMAMA
+                <span aria-hidden="true">→</span>
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Account"
+               asp-action="Register"
+               class="tm-btn tm-btn-light">
+                Create your account
+                <span aria-hidden="true">→</span>
+            </a>
+        }
+    </div>
+
+    <div class="tm-cta-decoration" aria-hidden="true">TM</div>
+</section>

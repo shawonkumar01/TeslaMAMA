@@ -1,50 +1,177 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>@ViewData["Title"] - TeslaMAMA</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/TeslaMAMA.styles.css" asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/TeslaMAMA.styles.css"
+          asp-append-version="true" />
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">TeslaMAMA</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+    <header class="tm-header">
+        <nav class="tm-navbar" aria-label="Main navigation">
+            <div class="tm-nav-container">
+
+                <a class="tm-brand"
+                   asp-controller="Home"
+                   asp-action="Index">
+                    <span class="tm-brand-icon">T</span>
+                    <span class="tm-brand-name">
+                        Tesla<span>MAMA</span>
+                    </span>
+                </a>
+
+                <button class="tm-menu-toggle"
+                        type="button"
+                        aria-label="Toggle navigation"
+                        aria-expanded="false"
+                        aria-controls="tm-nav-links">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+
+                <div class="tm-nav-links" id="tm-nav-links">
+                    <a class="tm-nav-link"
+                       asp-controller="Home"
+                       asp-action="Index">Home</a>
+
+                    <a class="tm-nav-link"
+                       asp-controller="Home"
+                       asp-action="Index"
+                       asp-fragment="how-it-works">How it works</a>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @if (User.IsInRole("Passenger"))
+                        {
+                            <a class="tm-nav-link"
+                               asp-controller="Home"
+                               asp-action="Index"
+                               asp-fragment="book-ride">Find a ride</a>
+                        }
+
+                        @if (User.IsInRole("Driver"))
+                        {
+                            <a class="tm-nav-link"
+                               asp-controller="Home"
+                               asp-action="Index"
+                               asp-fragment="how-it-works">For drivers</a>
+                        }
+
+                        <div class="tm-nav-auth">
+                            <span class="tm-user-label">
+                                Hi, @(User.Identity?.Name ?? "there")
+                            </span>
+
+                            <form asp-controller="Account"
+                                  asp-action="Logout"
+                                  method="post"
+                                  class="tm-logout-form">
+                                @Html.AntiForgeryToken()
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-logout">
+                                    Logout <span aria-hidden="true">↗</span>
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tm-nav-auth">
+                            <a class="tm-nav-login"
+                               asp-controller="Account"
+                               asp-action="Login">Sign in</a>
+
+                            <a class="tm-btn tm-btn-primary tm-nav-register"
+                               asp-controller="Account"
+                               asp-action="Register">Get started</a>
+                        </div>
+                    }
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - TeslaMAMA - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <main role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="tm-footer">
+        <div class="tm-footer-main">
+            <div class="tm-footer-brand">
+                <a class="tm-brand"
+                   asp-controller="Home"
+                   asp-action="Index">
+                    <span class="tm-brand-icon">T</span>
+                    <span class="tm-brand-name">
+                        Tesla<span>MAMA</span>
+                    </span>
+                </a>
+
+                <p>
+                    A smarter way to share compatible rides
+                    across Dhaka.
+                </p>
+            </div>
+
+            <div class="tm-footer-links">
+                <h3>Explore</h3>
+                <a asp-controller="Home" asp-action="Index">Home</a>
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   asp-fragment="how-it-works">How it works</a>
+                <a asp-controller="Home"
+                   asp-action="Privacy">Privacy</a>
+            </div>
+
+            <div class="tm-footer-links">
+                <h3>Your account</h3>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Home"
+                       asp-action="Index"
+                       asp-fragment="book-ride">Explore rides</a>
+                }
+                else
+                {
+                    <a asp-controller="Account"
+                       asp-action="Login">Sign in</a>
+
+                    <a asp-controller="Account"
+                       asp-action="Register">Create account</a>
+                }
+            </div>
+        </div>
+
+        <div class="tm-footer-bottom">
+            <span>
+                &copy; @DateTime.Now.Year TeslaMAMA.
+                All rights reserved.
+            </span>
+
+            <span>Designed for smarter shared journeys.</span>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
