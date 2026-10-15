@@ -1,0 +1,168 @@
+﻿@model TeslaMAMA.Models.PassengerDashboardViewModel
+
+@{
+    ViewData["Title"] = "Passenger Dashboard";
+}
+
+<div class="tm-dashboard">
+    <div class="tm-dashboard-header">
+        <div>
+            <span class="tm-dashboard-eyebrow">PASSENGER PORTAL</span>
+            <h1>Welcome back, @Model.FullName</h1>
+            <p>Manage your ride activity and keep track of your journeys.</p>
+        </div>
+
+        <a asp-controller="Home"
+           asp-action="Index"
+           asp-fragment="how-it-works"
+           class="tm-btn tm-btn-primary">
+            Explore ride pooling
+        </a>
+    </div>
+
+    <section class="tm-dashboard-stats" aria-label="Ride statistics">
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon">↗</div>
+            <p>Total rides</p>
+            <h2>@Model.TotalRides</h2>
+            <span>All your ride requests</span>
+        </article>
+
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-teal">◷</div>
+            <p>Active rides</p>
+            <h2>@Model.ActiveRides</h2>
+            <span>Requests in progress</span>
+        </article>
+
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-blue">✓</div>
+            <p>Completed rides</p>
+            <h2>@Model.CompletedRides</h2>
+            <span>Successfully completed</span>
+        </article>
+
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-gold">৳</div>
+            <p>Total spent</p>
+            <h2>৳@Model.TotalSpent.ToString("N2")</h2>
+            <span>Completed rides only</span>
+        </article>
+    </section>
+
+    <section class="tm-dashboard-panel">
+        <div class="tm-panel-header">
+            <div>
+                <h2>Recent rides</h2>
+                <p>Your five most recent ride requests.</p>
+            </div>
+            <span class="tm-record-count">
+                @Model.RecentRides.Count records
+            </span>
+        </div>
+
+        @if (Model.RecentRides.Count == 0)
+        {
+            <div class="tm-dashboard-empty">
+                <div class="tm-empty-icon">↗</div>
+                <h3>Your journey starts here</h3>
+                <p>
+                    You haven't requested a ride yet. Your ride activity
+                    will appear here once you start using TeslaMAMA.
+                </p>
+                <a asp-controller="Home"
+                   asp-action="Index"
+                   asp-fragment="how-it-works"
+                   class="tm-btn tm-btn-primary">
+                    Learn how it works
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="tm-rides-table-wrapper">
+                <table class="tm-rides-table">
+                    <thead>
+                        <tr>
+                            <th>Ride</th>
+                            <th>Route</th>
+                            <th>Seats</th>
+                            <th>Status</th>
+                            <th>Fare</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ride in Model.RecentRides)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>#@ride.Id</strong>
+                                    <span class="tm-table-subtext">
+                                        @ride.PaymentMethod
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="tm-table-route">
+                                        <span>@ride.PickupZone</span>
+                                        <span class="tm-route-arrow">→</span>
+                                        <span>@ride.DestinationZone</span>
+                                    </div>
+
+                                    @if (ride.PoolId.HasValue)
+                                    {
+                                        <span class="tm-table-subtext">
+                                            Shared ride · Pool #@ride.PoolId
+                                        </span>
+
+                                        @if (!string.IsNullOrWhiteSpace(ride.VehicleName))
+                                        {
+                                            <span class="tm-table-subtext">
+                                                Vehicle: @ride.VehicleName
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-table-subtext">
+                                            Waiting for a match
+                                        </span>
+                                    }
+                                </td>
+                                <td>@ride.Seats</td>
+                                <td>
+                                    <span class="tm-status tm-status-@ride.Status.ToString().ToLowerInvariant()">
+                                        @(ride.Status == RideStatus.DriverArrived
+                                            ? "Driver arrived"
+                                            : ride.Status.ToString())
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>৳@ride.FinalFare.ToString("N2")</strong>
+                                </td>
+                                <td>
+                                    <span class="tm-date">
+                                        @ride.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                    </span>
+                                    <span class="tm-table-subtext">
+                                        @ride.CreatedAt.ToLocalTime().ToString("hh:mm tt")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <div class="tm-dashboard-note">
+        <span class="tm-note-icon">i</span>
+        <p>
+            <strong>What's next?</strong>
+            Online ride booking and live ride management will be added in
+            the next development phase. This dashboard currently displays
+            existing ride records.
+        </p>
+    </div>
+</div>
