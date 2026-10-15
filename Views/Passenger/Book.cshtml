@@ -1,0 +1,168 @@
+﻿@using TeslaMAMA.Models
+@model PassengerBookingViewModel
+
+@{
+    ViewData["Title"] = "Book a Ride";
+}
+
+<section class="tm-dashboard">
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">PASSENGER</p>
+            <h1>Book your ride</h1>
+            <p>Choose your route and request a ride with TeslaMAMA.</p>
+        </div>
+
+        <a asp-controller="Passenger"
+           asp-action="Dashboard"
+           class="tm-btn tm-btn-secondary">
+            Back to dashboard
+        </a>
+    </div>
+
+    <div class="tm-dashboard-panel tm-booking-panel">
+        <form asp-controller="Passenger"
+              asp-action="Book"
+              method="post"
+              id="booking-form">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger"
+                 role="alert"></div>
+
+            <div class="tm-booking-grid">
+                <div class="tm-form-field">
+                    <label asp-for="PickupZone">Pickup zone</label>
+                    <select asp-for="PickupZone" id="pickup-zone">
+                        <option value="">Choose pickup</option>
+                        @foreach (var zone in Model.SupportedZones)
+                        {
+                            <option value="@zone">@zone</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PickupZone"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="tm-form-field">
+                    <label asp-for="DestinationZone">Destination zone</label>
+                    <select asp-for="DestinationZone"
+                            id="destination-zone">
+                        <option value="">Choose destination</option>
+                        @foreach (var zone in Model.SupportedZones)
+                        {
+                            <option value="@zone">@zone</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DestinationZone"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="tm-form-field">
+                    <label asp-for="Seats">Number of seats</label>
+                    <select asp-for="Seats" id="seat-count">
+                        <option value="1">1 seat</option>
+                        <option value="2">2 seats</option>
+                        <option value="3">3 seats</option>
+                    </select>
+                    <span asp-validation-for="Seats"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="tm-form-field">
+                    <label asp-for="PaymentMethod">Payment method</label>
+                    <select asp-for="PaymentMethod">
+                        <option value="@PaymentMethod.Cash">Cash</option>
+                        <option value="@PaymentMethod.Card">Card</option>
+                        <option value="@PaymentMethod.MobileBanking">
+                            Mobile banking
+                        </option>
+                    </select>
+                    <span asp-validation-for="PaymentMethod"
+                          class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="tm-fare-preview" aria-live="polite">
+                <div>
+                    <p class="tm-eyebrow">ESTIMATED FARE</p>
+                    <h2 id="fare-amount">Select a supported route</h2>
+                    <p id="fare-details">
+                        Choose a pickup and destination to see the estimate.
+                        The server validates the final fare.
+                    </p>
+                </div>
+            </div>
+
+            <button type="submit" class="tm-btn tm-btn-primary">
+                Request ride
+            </button>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (() => {
+            const pickup = document.getElementById("pickup-zone");
+            const destination = document.getElementById("destination-zone");
+            const seats = document.getElementById("seat-count");
+            const amount = document.getElementById("fare-amount");
+            const details = document.getElementById("fare-details");
+
+            // Display-only estimates. Server-side pricing remains authoritative.
+            const fares = {
+                "Banani|Mohakhali": 52.80,
+                "Banani|Gulshan 1": 52.16
+            };
+
+            function updateFare() {
+                const from = pickup.value;
+                const to = destination.value;
+                const count = Number(seats.value);
+
+                if (!from || !to) {
+                    amount.textContent = "Select a supported route";
+                    details.textContent =
+                        "Choose a pickup and destination to see the estimate.";
+                    return;
+                }
+
+                if (from === to) {
+                    amount.textContent = "Invalid route";
+                    details.textContent =
+                        "Pickup and destination must be different.";
+                    return;
+                }
+
+                const key = [from, to].sort().join("|");
+                const farePerSeat = fares[key];
+
+                if (farePerSeat === undefined) {
+                    amount.textContent = "Route unavailable";
+                    details.textContent =
+                        "A fare has not been configured for this route.";
+                    return;
+                }
+
+                const total = farePerSeat * count;
+
+                amount.textContent = "৳" + total.toFixed(2);
+                details.textContent =
+                    "৳" + farePerSeat.toFixed(2) + " per seat × " +
+                    count + (count === 1 ? " seat" : " seats") +
+                    ". The server validates the final fare.";
+            }
+
+            pickup.addEventListener("change", updateFare);
+            destination.addEventListener("change", updateFare);
+            seats.addEventListener("change", updateFare);
+
+            updateFare();
+        })();
+    </script>
+}
