@@ -57,10 +57,9 @@
                     {
                         @if (User.IsInRole("Passenger"))
                         {
-                            <a class="tm-nav-link"
-                               asp-controller="Home"
-                               asp-action="Index"
-                               asp-fragment="book-ride">Find a ride</a>
+                  
+                                <a class="tm-nav-link" asp-controller="Passenger" asp-action="Dashboard">Dashboard</a>
+
                         }
 
                         @if (User.IsInRole("Driver"))
