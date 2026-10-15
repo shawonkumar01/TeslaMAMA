@@ -19,6 +19,9 @@ builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
+builder.Services.AddScoped<
+    TeslaMAMA.Services.IFareCalculationService,
+    TeslaMAMA.Services.FixedFareCalculationService>();
 
 var app = builder.Build();
 await DbSeeder.SeedAsync(app.Services);
