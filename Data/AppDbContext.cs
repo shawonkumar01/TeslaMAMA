@@ -92,7 +92,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             {
                 t.HasCheckConstraint(
                     "CK_RideRequest_Seats",
-                    "\"Seats\" BETWEEN 1 AND 3");
+                    "\"Seats\" BETWEEN 1 AND 5");
 
                 t.HasCheckConstraint(
                     "CK_RideRequest_FinalFare",

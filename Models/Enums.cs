@@ -42,3 +42,9 @@ public enum DriverOfferStatus
     Rejected,
     Expired
 }
+
+public enum RideType
+{
+    SharedPool,
+    Private
+}

@@ -11,8 +11,13 @@ public class PassengerBookingViewModel
     [Required(ErrorMessage = "Select a destination zone.")]
     public string DestinationZone { get; set; } = string.Empty;
 
-    [Range(1, 3, ErrorMessage = "Choose between 1 and 3 seats.")]
+    [Range(1, 5, ErrorMessage = "Choose between 1 and 5 seats.")]
     public int Seats { get; set; } = 1;
+
+    [EnumDataType(
+        typeof(RideType),
+        ErrorMessage = "Select a valid ride type.")]
+    public RideType RideType { get; set; } = RideType.SharedPool;
 
     [EnumDataType(
         typeof(PaymentMethod),
