@@ -228,6 +228,44 @@ namespace TeslaMAMA.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("TeslaMAMA.Models.DriverOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RideRequestId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RideRequestId", "VehicleId")
+                        .IsUnique();
+
+                    b.HasIndex("VehicleId", "Status");
+
+                    b.ToTable("DriverOffers");
+                });
+
             modelBuilder.Entity("TeslaMAMA.Models.Pool", b =>
                 {
                     b.Property<int>("Id")
@@ -462,6 +500,25 @@ namespace TeslaMAMA.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TeslaMAMA.Models.DriverOffer", b =>
+                {
+                    b.HasOne("TeslaMAMA.Models.RideRequest", "RideRequest")
+                        .WithMany()
+                        .HasForeignKey("RideRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TeslaMAMA.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RideRequest");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("TeslaMAMA.Models.Pool", b =>
