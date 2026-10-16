@@ -1,4 +1,5 @@
-﻿@model TeslaMAMA.Models.PassengerDashboardViewModel
+﻿
+@model TeslaMAMA.Models.PassengerDashboardViewModel
 
 @{
     ViewData["Title"] = "Passenger Dashboard";
@@ -35,6 +36,12 @@
         </div>
     }
 
+    @if (TempData["Error"] is string errorMessage)
+    {
+        <div class="tm-dashboard-note" role="alert">
+            @errorMessage
+        </div>
+    }
 
     <section class="tm-dashboard-stats" aria-label="Ride statistics">
         <article class="tm-stat-card">
@@ -72,6 +79,7 @@
                 <h2>Recent rides</h2>
                 <p>Your five most recent ride requests.</p>
             </div>
+
             <span class="tm-record-count">
                 @Model.RecentRides.Count records
             </span>
@@ -86,6 +94,7 @@
                     You haven't requested a ride yet. Your ride activity
                     will appear here once you start using TeslaMAMA.
                 </p>
+
                 <a asp-controller="Home"
                    asp-action="Index"
                    asp-fragment="how-it-works"
@@ -106,8 +115,10 @@
                             <th>Status</th>
                             <th>Fare</th>
                             <th>Date</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         @foreach (var ride in Model.RecentRides)
                         {
@@ -118,6 +129,7 @@
                                         @ride.PaymentMethod
                                     </span>
                                 </td>
+
                                 <td>
                                     <div class="tm-table-route">
                                         <span>@ride.PickupZone</span>
@@ -145,17 +157,23 @@
                                         </span>
                                     }
                                 </td>
+
                                 <td>@ride.Seats</td>
+
                                 <td>
                                     <span class="tm-status tm-status-@ride.Status.ToString().ToLowerInvariant()">
                                         @(ride.Status == RideStatus.DriverArrived
                                             ? "Driver arrived"
-                                            : ride.Status.ToString())
+                                            : ride.Status == RideStatus.WaitingForPayment
+                                                ? "Waiting for payment"
+                                                : ride.Status.ToString())
                                     </span>
                                 </td>
+
                                 <td>
                                     <strong>৳@ride.FinalFare.ToString("N2")</strong>
                                 </td>
+
                                 <td>
                                     <span class="tm-date">
                                         @ride.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
@@ -163,6 +181,36 @@
                                     <span class="tm-table-subtext">
                                         @ride.CreatedAt.ToLocalTime().ToString("hh:mm tt")
                                     </span>
+                                </td>
+
+                                <td>
+                                    @if (ride.Status == RideStatus.WaitingForPayment)
+                                    {
+                                        <form asp-controller="Passenger"
+                                              asp-action="ConfirmPayment"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="rideId"
+                                                   value="@ride.Id" />
+
+                                            <button type="submit"
+                                                    class="tm-btn tm-btn-primary">
+                                                Confirm Payment
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (ride.Status == RideStatus.Completed)
+                                    {
+                                        <span class="tm-status tm-status-completed">
+                                            Completed
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-table-subtext">—</span>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -176,9 +224,8 @@
         <span class="tm-note-icon">i</span>
         <p>
             <strong>What's next?</strong>
-            Online ride booking and live ride management will be added in
-            the next development phase. This dashboard currently displays
-            existing ride records.
+            Track your ride status here. Once the driver reaches your
+            destination, confirm payment to complete your ride.
         </p>
     </div>
 </div>

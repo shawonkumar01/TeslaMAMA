@@ -72,9 +72,10 @@
                         @if (User.IsInRole("Driver"))
                         {
                             <a class="tm-nav-link"
-                               asp-controller="Home"
-                               asp-action="Index"
-                               asp-fragment="how-it-works">For drivers</a>
+                               asp-controller="Driver"
+                               asp-action="Index">
+                                Driver Dashboard
+                            </a>
                         }
 
                         <div class="tm-nav-auth">

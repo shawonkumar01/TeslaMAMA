@@ -23,6 +23,7 @@ public enum RideStatus
     Matched,
     DriverArrived,
     Started,
+    WaitingForPayment,
     Completed,
     Cancelled
 }
@@ -33,4 +34,11 @@ public enum PaymentMethod
     Card,
     MobileBanking
 }
- 
+
+public enum DriverOfferStatus
+{
+    Pending,
+    Accepted,
+    Rejected,
+    Expired
+}
