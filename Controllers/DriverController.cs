@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -120,9 +121,57 @@ public class DriverController : Controller
                 PaymentMethod = r.PaymentMethod,
                 PoolId = r.PoolId!.Value,
                 PoolStatus = r.Pool!.Status,
-                CreatedAt = r.CreatedAt
+                CreatedAt = r.CreatedAt,
+                PoolSeatsUsed = r.Pool.SeatsUsed,
+                VehicleCapacity = r.Pool.Vehicle.Capacity,
+                TotalPassengersInPool = r.Pool.RideRequests.Count(ride =>
+                    ride.Status != RideStatus.Completed &&
+                    ride.Status != RideStatus.Cancelled),
+                IsSharedPool = r.RideType == RideType.SharedPool
             })
             .ToListAsync(cancellationToken);
+
+        // Group rides by pool for pool-level actions
+        var pools = await _dbContext.Pools
+            .AsNoTracking()
+            .Include(p => p.RideRequests)
+                .ThenInclude(r => r.Passenger)
+            .Include(p => p.Vehicle)
+            .Where(p => p.VehicleId == vehicle.Id)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        viewModel.Pools = pools.Select(p => new DriverPoolItemViewModel
+        {
+            PoolId = p.Id,
+            PoolStatus = p.Status,
+            SeatsUsed = p.SeatsUsed,
+            VehicleCapacity = p.Vehicle.Capacity,
+            TotalPassengers = p.RideRequests.Count(r =>
+                r.Status != RideStatus.Completed &&
+                r.Status != RideStatus.Cancelled),
+            IsSharedPool = p.RideRequests.Any(r => r.RideType == RideType.SharedPool),
+            Rides = p.RideRequests.Select(r => new DriverRideItemViewModel
+            {
+                RideId = r.Id,
+                PassengerName = r.Passenger.FullName,
+                PickupZone = r.PickupZone,
+                DestinationZone = r.DestinationZone,
+                Seats = r.Seats,
+                Fare = r.FinalFare,
+                Status = r.Status,
+                PaymentMethod = r.PaymentMethod,
+                PoolId = p.Id,
+                PoolStatus = p.Status,
+                CreatedAt = r.CreatedAt,
+                PoolSeatsUsed = p.SeatsUsed,
+                VehicleCapacity = p.Vehicle.Capacity,
+                TotalPassengersInPool = p.RideRequests.Count(ride =>
+                    ride.Status != RideStatus.Completed &&
+                    ride.Status != RideStatus.Cancelled),
+                IsSharedPool = r.RideType == RideType.SharedPool
+            }).ToList()
+        }).ToList();
 
         return View(viewModel);
     }
@@ -219,7 +268,7 @@ public class DriverController : Controller
     }
 
     // POST: /Driver/AcceptOffer
-    // Accepts a valid offer and assigns the ride to a compatible pool.
+    // Revalidates vehicle eligibility and assigns the ride to a compatible pool.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AcceptOffer(
@@ -288,53 +337,112 @@ public class DriverController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var hasRideInProgress = await _dbContext.Pools
-            .AnyAsync(
-                p => p.VehicleId == vehicle.Id &&
-                     p.Status == PoolStatus.InProgress,
-                cancellationToken);
+        var pools = await _dbContext.Pools
+            .Include(p => p.RideRequests)
+            .Where(p =>
+                p.VehicleId == vehicle.Id &&
+                (p.Status == PoolStatus.Open ||
+                 p.Status == PoolStatus.Full ||
+                 p.Status == PoolStatus.InProgress))
+            .ToListAsync(cancellationToken);
 
-        if (hasRideInProgress)
+        // Never assign a new ride while this vehicle is on a trip.
+        if (pools.Any(p => p.Status == PoolStatus.InProgress))
         {
             TempData["ErrorMessage"] =
                 "Your vehicle already has a ride in progress.";
 
+            await transaction.CommitAsync(cancellationToken);
             return RedirectToAction(nameof(Index));
         }
 
-        var openPools = await _dbContext.Pools
-            .Include(p => p.RideRequests)
-            .Where(p =>
-                p.VehicleId == vehicle.Id &&
-                p.Status == PoolStatus.Open)
-            .ToListAsync(cancellationToken);
+        var activePools = pools
+            .Where(p => p.RideRequests.Any(r =>
+                r.Status != RideStatus.Completed &&
+                r.Status != RideStatus.Cancelled))
+            .ToList();
 
-        var pool = openPools.FirstOrDefault(p =>
-            p.SeatsUsed + ride.Seats <= vehicle.Capacity &&
-            p.RideRequests.All(r =>
-                r.Status == RideStatus.Cancelled ||
-                (r.PickupZone == ride.PickupZone &&
-                 r.DestinationZone == ride.DestinationZone)));
+        Pool? pool = null;
 
-        if (pool is null)
+        if (ride.RideType == RideType.Private)
         {
+            // A Private ride exclusively reserves the vehicle.
+            if (activePools.Count > 0)
+            {
+                offer.Status = DriverOfferStatus.Expired;
+                offer.RespondedAt = now;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                TempData["ErrorMessage"] =
+                    "This vehicle is already reserved. Please wait for another offer.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
             pool = new Pool
             {
                 VehicleId = vehicle.Id,
                 Status = PoolStatus.Open,
-                SeatsUsed = 0,
+                SeatsUsed = vehicle.Capacity,
                 CreatedAt = now
             };
 
             _dbContext.Pools.Add(pool);
         }
+        else
+        {
+            // Shared rides may join only a compatible, open Shared Pool.
+            pool = activePools.FirstOrDefault(p =>
+                p.Status == PoolStatus.Open &&
+                p.SeatsUsed + ride.Seats <= vehicle.Capacity &&
+                p.RideRequests.All(r =>
+                    r.Status == RideStatus.Cancelled ||
+                    r.Status == RideStatus.Completed ||
+                    (r.RideType == RideType.SharedPool &&
+                     string.Equals(
+                         r.PickupZone,
+                         ride.PickupZone,
+                         StringComparison.OrdinalIgnoreCase) &&
+                     RouteCompatibilityService.AreDestinationsCompatible(
+                        r.DestinationZone,
+                            ride.DestinationZone))));
+
+            if (activePools.Count > 0 && pool is null)
+            {
+                offer.Status = DriverOfferStatus.Expired;
+                offer.RespondedAt = now;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                TempData["ErrorMessage"] =
+                    "This vehicle no longer has a compatible shared pool with enough seats.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (pool is null)
+            {
+                pool = new Pool
+                {
+                    VehicleId = vehicle.Id,
+                    Status = PoolStatus.Open,
+                    SeatsUsed = 0,
+                    CreatedAt = now
+                };
+
+                _dbContext.Pools.Add(pool);
+            }
+
+            pool.SeatsUsed += ride.Seats;
+
+            if (pool.SeatsUsed >= vehicle.Capacity)
+                pool.Status = PoolStatus.Full;
+        }
 
         var previousStatus = ride.Status;
-
-        pool.SeatsUsed += ride.Seats;
-
-        if (pool.SeatsUsed >= vehicle.Capacity)
-            pool.Status = PoolStatus.Full;
 
         ride.Pool = pool;
         ride.Status = RideStatus.Matched;
@@ -350,7 +458,7 @@ public class DriverController : Controller
             ChangedAt = now
         });
 
-        // Invalidate any other pending offers for this ride.
+        // Invalidate all other pending offers for this ride.
         var otherOffers = await _dbContext.DriverOffers
             .Where(o =>
                 o.RideRequestId == ride.Id &&
@@ -367,7 +475,10 @@ public class DriverController : Controller
         await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        TempData["SuccessMessage"] = "Ride accepted successfully.";
+        TempData["SuccessMessage"] = ride.RideType == RideType.Private
+            ? "Private ride accepted. The entire vehicle is reserved for this passenger."
+            : "Shared Pool ride accepted successfully.";
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -459,6 +570,346 @@ public class DriverController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // Marks the driver as arrived at the pickup point for the entire pool.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkPoolArrived(
+        int poolId,
+        CancellationToken cancellationToken)
+    {
+        var driver = await _userManager.GetUserAsync(User);
+
+        if (driver is null || driver.Role != UserRole.Driver)
+            return Forbid();
+
+        var vehicle = await _dbContext.Vehicles
+            .FirstOrDefaultAsync(
+                v => v.DriverId == driver.Id,
+                cancellationToken);
+
+        if (vehicle is null)
+        {
+            TempData["ErrorMessage"] =
+                "No vehicle is assigned to your account.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var pool = await _dbContext.Pools
+            .Include(p => p.RideRequests)
+            .FirstOrDefaultAsync(
+                p => p.Id == poolId && p.VehicleId == vehicle.Id,
+                cancellationToken);
+
+        if (pool is null)
+            return NotFound();
+
+        if (pool.Status != PoolStatus.Open && pool.Status != PoolStatus.Full)
+        {
+            TempData["ErrorMessage"] =
+                $"Pool is in {pool.Status} status. Cannot mark arrived.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Update all matched rides in the pool to DriverArrived
+        var matchedRides = pool.RideRequests
+            .Where(r => r.Status == RideStatus.Matched)
+            .ToList();
+
+        foreach (var ride in matchedRides)
+        {
+            var previousStatus = ride.Status;
+            ride.Status = RideStatus.DriverArrived;
+
+            _dbContext.RideStatusHistory.Add(new RideStatusHistory
+            {
+                RideRequestId = ride.Id,
+                FromStatus = previousStatus,
+                ToStatus = RideStatus.DriverArrived,
+                ChangedAt = now
+            });
+        }
+
+        if (matchedRides.Any())
+        {
+            pool.Status = PoolStatus.InProgress;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        TempData["SuccessMessage"] =
+            $"Pool #{poolId} marked as arrived. All passengers have been notified.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Starts the trip for the entire pool after all passengers are picked up.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> StartPoolTrip(
+        int poolId,
+        CancellationToken cancellationToken)
+    {
+        var driver = await _userManager.GetUserAsync(User);
+
+        if (driver is null || driver.Role != UserRole.Driver)
+            return Forbid();
+
+        var vehicle = await _dbContext.Vehicles
+            .FirstOrDefaultAsync(
+                v => v.DriverId == driver.Id,
+                cancellationToken);
+
+        if (vehicle is null)
+        {
+            TempData["ErrorMessage"] =
+                "No vehicle is assigned to your account.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var pool = await _dbContext.Pools
+            .Include(p => p.RideRequests)
+            .FirstOrDefaultAsync(
+                p => p.Id == poolId && p.VehicleId == vehicle.Id,
+                cancellationToken);
+
+        if (pool is null)
+            return NotFound();
+
+        if (pool.Status != PoolStatus.InProgress)
+        {
+            TempData["ErrorMessage"] =
+                $"Pool is in {pool.Status} status. Cannot start trip.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Update all DriverArrived rides in the pool to Started
+        var arrivedRides = pool.RideRequests
+            .Where(r => r.Status == RideStatus.DriverArrived)
+            .ToList();
+
+        foreach (var ride in arrivedRides)
+        {
+            var previousStatus = ride.Status;
+            ride.Status = RideStatus.Started;
+
+            _dbContext.RideStatusHistory.Add(new RideStatusHistory
+            {
+                RideRequestId = ride.Id,
+                FromStatus = previousStatus,
+                ToStatus = RideStatus.Started,
+                ChangedAt = now
+            });
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        TempData["SuccessMessage"] =
+            $"Pool #{poolId} trip started. Heading to destinations.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Drops off a single passenger at their destination (for shared pools).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DropOffPassenger(
+        int rideId,
+        CancellationToken cancellationToken)
+    {
+        var driver = await _userManager.GetUserAsync(User);
+
+        if (driver is null || driver.Role != UserRole.Driver)
+            return Forbid();
+
+        var vehicle = await _dbContext.Vehicles
+            .FirstOrDefaultAsync(
+                v => v.DriverId == driver.Id,
+                cancellationToken);
+
+        if (vehicle is null)
+        {
+            TempData["ErrorMessage"] =
+                "No vehicle is assigned to your account.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var ride = await _dbContext.RideRequests
+            .Include(r => r.Pool)
+            .FirstOrDefaultAsync(
+                r => r.Id == rideId &&
+                     r.Pool != null &&
+                     r.Pool.VehicleId == vehicle.Id,
+                cancellationToken);
+
+        if (ride is null)
+            return NotFound();
+
+        if (ride.Status != RideStatus.Started)
+        {
+            TempData["ErrorMessage"] =
+                $"Ride is in {ride.Status} status. Cannot drop off passenger.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var now = DateTime.UtcNow;
+        var previousStatus = ride.Status;
+
+        ride.Status = RideStatus.WaitingForPayment;
+
+        _dbContext.RideStatusHistory.Add(new RideStatusHistory
+        {
+            RideRequestId = ride.Id,
+            FromStatus = previousStatus,
+            ToStatus = RideStatus.WaitingForPayment,
+            ChangedAt = now
+        });
+
+        // Update vehicle location to this passenger's destination
+        vehicle.CurrentZone = ride.DestinationZone;
+
+        // Check if all passengers in the pool have been dropped off
+        var pool = ride.Pool;
+        if (pool != null)
+        {
+            var hasActiveRides = await _dbContext.RideRequests
+                .AnyAsync(
+                    r => r.PoolId == pool.Id &&
+                         r.Status != RideStatus.Completed &&
+                         r.Status != RideStatus.Cancelled &&
+                         r.Status != RideStatus.WaitingForPayment,
+                    cancellationToken);
+
+            if (!hasActiveRides)
+            {
+                // All passengers dropped off, complete the pool
+                pool.Status = PoolStatus.Completed;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        TempData["SuccessMessage"] =
+            $"Passenger dropped off at {ride.DestinationZone}. Waiting for payment.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    // Marks the destination reached for the entire pool (for private pools only).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReachPoolDestination(
+        int poolId,
+        CancellationToken cancellationToken)
+    {
+        var driver = await _userManager.GetUserAsync(User);
+
+        if (driver is null || driver.Role != UserRole.Driver)
+            return Forbid();
+
+        var vehicle = await _dbContext.Vehicles
+            .FirstOrDefaultAsync(
+                v => v.DriverId == driver.Id,
+                cancellationToken);
+
+        if (vehicle is null)
+        {
+            TempData["ErrorMessage"] =
+                "No vehicle is assigned to your account.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var pool = await _dbContext.Pools
+            .Include(p => p.RideRequests)
+            .FirstOrDefaultAsync(
+                p => p.Id == poolId && p.VehicleId == vehicle.Id,
+                cancellationToken);
+
+        if (pool is null)
+            return NotFound();
+
+        if (pool.Status != PoolStatus.InProgress)
+        {
+            TempData["ErrorMessage"] =
+                $"Pool is in {pool.Status} status. Cannot reach destination.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Only allow pool-level destination for private pools
+        var isPrivatePool = pool.RideRequests.All(r => r.RideType == RideType.Private);
+        if (!isPrivatePool)
+        {
+            TempData["ErrorMessage"] =
+                "Use individual drop-off for shared pools with multiple destinations.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Update all Started rides in the pool to WaitingForPayment
+        var startedRides = pool.RideRequests
+            .Where(r => r.Status == RideStatus.Started)
+            .ToList();
+
+        foreach (var ride in startedRides)
+        {
+            var previousStatus = ride.Status;
+            ride.Status = RideStatus.WaitingForPayment;
+
+            _dbContext.RideStatusHistory.Add(new RideStatusHistory
+            {
+                RideRequestId = ride.Id,
+                FromStatus = previousStatus,
+                ToStatus = RideStatus.WaitingForPayment,
+                ChangedAt = now
+            });
+
+            // Update vehicle location to this ride's destination
+            vehicle.CurrentZone = ride.DestinationZone;
+        }
+
+        pool.Status = PoolStatus.Completed;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        TempData["SuccessMessage"] =
+            $"Pool #{poolId} destination reached. Waiting for passenger payments.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
     // Marks the driver as arrived at the pickup point.
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -501,7 +952,7 @@ public class DriverController : Controller
             cancellationToken);
     }
 
-    // Validates ride ownership and updates ride, pool, and vehicle location.
+    // Validates ride ownership and updates ride status and vehicle location.
     private async Task<IActionResult> ChangeRideStatusAsync(
         int rideId,
         RideStatus expectedStatus,
@@ -513,7 +964,6 @@ public class DriverController : Controller
         if (driver is null || driver.Role != UserRole.Driver)
             return Forbid();
 
-        // Load the tracked vehicle so its location can be updated and saved.
         var vehicle = await _dbContext.Vehicles
             .FirstOrDefaultAsync(
                 v => v.DriverId == driver.Id,
@@ -570,11 +1020,8 @@ public class DriverController : Controller
 
         if (newStatus == RideStatus.WaitingForPayment)
         {
-            if (ride.Pool is not null)
-                ride.Pool.Status = PoolStatus.Completed;
-
-            // The driver has physically reached the destination.
-            // Update the tracked vehicle so the next online location is accurate.
+            // Keep the pool reserved until payment is confirmed
+            // and all other rides in the pool are completed or cancelled.
             vehicle.CurrentZone = ride.DestinationZone;
         }
 

@@ -15,6 +15,29 @@ public class DriverDashboardViewModel
 
     public List<DriverOfferItemViewModel> PendingOffers { get; set; } = new();
     public List<DriverRideItemViewModel> Rides { get; set; } = new();
+    public List<DriverPoolItemViewModel> Pools { get; set; } = new();
+}
+
+public class DriverPoolItemViewModel
+{
+    public int PoolId { get; set; }
+    public PoolStatus PoolStatus { get; set; }
+    public int SeatsUsed { get; set; }
+    public int VehicleCapacity { get; set; }
+    public int TotalPassengers { get; set; }
+    public bool IsSharedPool { get; set; }
+    public List<DriverRideItemViewModel> Rides { get; set; } = new();
+
+    public bool CanMarkArrived =>
+        PoolStatus == PoolStatus.Open || PoolStatus == PoolStatus.Full;
+
+    public bool CanStartTrip =>
+        PoolStatus == PoolStatus.InProgress &&
+        Rides.Any(r => r.Status == RideStatus.DriverArrived);
+
+    public bool CanReachDestination =>
+        PoolStatus == PoolStatus.InProgress &&
+        Rides.Any(r => r.Status == RideStatus.Started);
 }
 
 public class DriverOfferItemViewModel
@@ -50,6 +73,17 @@ public class DriverRideItemViewModel
     public PoolStatus PoolStatus { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public int PoolSeatsUsed { get; set; }
+
+    public int VehicleCapacity { get; set; }
+
+    public int TotalPassengersInPool { get; set; }
+
+    public bool IsSharedPool { get; set; }
+
+    public bool CanDropOff =>
+        Status == RideStatus.Started;
 
     public bool CanMarkArrived =>
         Status == RideStatus.Matched;

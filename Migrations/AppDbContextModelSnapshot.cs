@@ -361,6 +361,9 @@ namespace TeslaMAMA.Migrations
                     b.Property<int?>("PoolId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("RideType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Seats")
                         .HasColumnType("integer");
 
@@ -381,7 +384,7 @@ namespace TeslaMAMA.Migrations
                         {
                             t.HasCheckConstraint("CK_RideRequest_FinalFare", "\"FinalFare\" >= 0");
 
-                            t.HasCheckConstraint("CK_RideRequest_Seats", "\"Seats\" BETWEEN 1 AND 3");
+                            t.HasCheckConstraint("CK_RideRequest_Seats", "\"Seats\" BETWEEN 1 AND 5");
                         });
                 });
 

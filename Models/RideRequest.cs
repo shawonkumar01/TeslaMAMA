@@ -15,7 +15,11 @@ public class RideRequest
     public string DestinationZone { get; set; } = string.Empty;
 
     public int Seats { get; set; } = 1;
+
+    public RideType RideType { get; set; } = RideType.SharedPool;
+
     public RideStatus Status { get; set; } = RideStatus.Requested;
+
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
 
     public decimal FinalFare { get; set; }

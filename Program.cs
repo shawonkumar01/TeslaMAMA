@@ -23,10 +23,37 @@ builder.Services
 builder.Services.AddScoped<
     TeslaMAMA.Services.IFareCalculationService,
     TeslaMAMA.Services.FixedFareCalculationService>();
-builder.Services.AddScoped<IDriverAssignmentService, DriverAssignmentService>();
+builder.Services.AddScoped<
+    IDriverAssignmentService,
+    TeslaMAMA.Services.DriverAssignmentService>();
+builder.Services.AddHostedService<RideOfferTimeoutService>();
 
 var app = builder.Build();
-await DbSeeder.SeedAsync(app.Services);
+//await DbSeeder.SeedAsync(app.Services);
+// Ensure required Identity roles exist without creating demo users or vehicles.
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider
+        .GetRequiredService<RoleManager<IdentityRole>>();
+
+    string[] roles = { "PASSENGER", "DRIVER" };
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            var result = await roleManager.CreateAsync(
+                new IdentityRole(role));
+
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to create role {role}: " +
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
