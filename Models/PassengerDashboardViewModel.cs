@@ -41,4 +41,12 @@ public class PassengerRideItemViewModel
     public PoolStatus? PoolStatus { get; set; }
 
     public string? VehicleName { get; set; }
+
+    public int? PoolSeatsUsed { get; set; }
+
+    public int? VehicleCapacity { get; set; }
+
+    public int? OtherPassengersInPool { get; set; }
+
+    public bool IsSharedPool { get; set; }
 }

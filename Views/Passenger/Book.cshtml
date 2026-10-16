@@ -1,4 +1,5 @@
-﻿@using TeslaMAMA.Models
+﻿
+@using TeslaMAMA.Models
 @model PassengerBookingViewModel
 
 @{
@@ -47,7 +48,9 @@
                 </div>
 
                 <div class="tm-form-field">
-                    <label asp-for="DestinationZone">Destination zone</label>
+                    <label asp-for="DestinationZone">
+                        Destination zone
+                    </label>
                     <select asp-for="DestinationZone"
                             id="destination-zone">
                         <option value="">Choose destination</option>
@@ -61,11 +64,28 @@
                 </div>
 
                 <div class="tm-form-field">
+                    <label asp-for="RideType">Ride type</label>
+                    <select asp-for="RideType" id="ride-type">
+                        <option value="@RideType.SharedPool">
+                            Shared Pool
+                        </option>
+                        <option value="@RideType.Private">
+                            Private Ride
+                        </option>
+                    </select>
+                    <span asp-validation-for="RideType"
+                          class="text-danger"></span>
+                </div>
+
+                <div class="tm-form-field">
                     <label asp-for="Seats">Number of seats</label>
                     <select asp-for="Seats" id="seat-count">
-                        <option value="1">1 seat</option>
-                        <option value="2">2 seats</option>
-                        <option value="3">3 seats</option>
+                        @for (var count = 1; count <= 5; count++)
+                        {
+                            <option value="@count">
+                                @count @(count == 1 ? "seat" : "seats")
+                            </option>
+                        }
                     </select>
                     <span asp-validation-for="Seats"
                           class="text-danger"></span>
@@ -109,21 +129,24 @@
     <script>
         (() => {
             const pickup = document.getElementById("pickup-zone");
-            const destination = document.getElementById("destination-zone");
+            const destination =
+                document.getElementById("destination-zone");
             const seats = document.getElementById("seat-count");
+            const rideType = document.getElementById("ride-type");
             const amount = document.getElementById("fare-amount");
             const details = document.getElementById("fare-details");
 
-            // Display-only estimates. Server-side pricing remains authoritative.
-            const fares = {
-                "Banani|Mohakhali": 52.80,
-                "Banani|Gulshan 1": 52.16
-            };
+            let currentRequest = null;
 
-            function updateFare() {
+            async function updateFare() {
+                if (currentRequest) {
+                    currentRequest.abort();
+                }
+
                 const from = pickup.value;
                 const to = destination.value;
                 const count = Number(seats.value);
+                const type = rideType.value;
 
                 if (!from || !to) {
                     amount.textContent = "Select a supported route";
@@ -139,28 +162,75 @@
                     return;
                 }
 
-                const key = [from, to].sort().join("|");
-                const farePerSeat = fares[key];
+                amount.textContent = "Calculating...";
+                details.textContent = "Checking the current fare estimate.";
 
-                if (farePerSeat === undefined) {
-                    amount.textContent = "Route unavailable";
+                currentRequest = new AbortController();
+
+                const params = new URLSearchParams({
+                    pickupZone: from,
+                    destinationZone: to,
+                    seats: String(count),
+                    rideType: type
+                });
+
+                try {
+                    const response = await fetch(
+                        '@Url.Action("FareEstimate", "Passenger")' +
+                        "?" + params.toString(),
+                        {
+                            method: "GET",
+                            headers: {
+                                "Accept": "application/json"
+                            },
+                            signal: currentRequest.signal
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        amount.textContent = "Route unavailable";
+                        details.textContent = result.message ||
+                            "A fare is not configured for this route.";
+                        return;
+                    }
+
+                    amount.textContent =
+                        "৳" + Number(result.totalFare).toFixed(2);
+
+                    const seatText =
+                        count === 1 ? " seat" : " seats";
+
+                    if (type === "SharedPool") {
+                        details.textContent =
+                            "Shared Pool · " +
+                            result.discountPercent +
+                            "% discount · ৳" +
+                            Number(result.perSeatFare).toFixed(2) +
+                            " per seat × " + count + seatText + ".";
+                    } else {
+                        details.textContent =
+                            "Private Ride · Entire vehicle reserved · ৳" +
+                            Number(result.perSeatFare).toFixed(2) +
+                            " per seat × " + count + seatText +
+                            ". No pool discount.";
+                    }
+                } catch (error) {
+                    if (error.name === "AbortError") {
+                        return;
+                    }
+
+                    amount.textContent = "Fare unavailable";
                     details.textContent =
-                        "A fare has not been configured for this route.";
-                    return;
+                        "Could not retrieve the estimate. Please try again.";
                 }
-
-                const total = farePerSeat * count;
-
-                amount.textContent = "৳" + total.toFixed(2);
-                details.textContent =
-                    "৳" + farePerSeat.toFixed(2) + " per seat × " +
-                    count + (count === 1 ? " seat" : " seats") +
-                    ". The server validates the final fare.";
             }
 
             pickup.addEventListener("change", updateFare);
             destination.addEventListener("change", updateFare);
             seats.addEventListener("change", updateFare);
+            rideType.addEventListener("change", updateFare);
 
             updateFare();
         })();

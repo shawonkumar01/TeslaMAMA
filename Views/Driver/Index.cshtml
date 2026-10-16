@@ -289,12 +289,194 @@
         }
     </div>
 
-    <!-- Assigned rides -->
+    <!-- Active pools -->
+    @if (Model.Pools.Any(p => p.PoolStatus == PoolStatus.Open || p.PoolStatus == PoolStatus.Full || p.PoolStatus == PoolStatus.InProgress))
+    {
+        <div class="tm-dashboard-panel">
+            <div class="tm-panel-header">
+                <div>
+                    <h2>Active pools</h2>
+                    <p>Manage entire pools with single actions.</p>
+                </div>
+
+                <span class="tm-record-count">
+                    @Model.Pools.Count(p => p.PoolStatus == PoolStatus.Open || p.PoolStatus == PoolStatus.Full || p.PoolStatus == PoolStatus.InProgress) active
+                </span>
+            </div>
+
+            @foreach (var pool in Model.Pools.Where(p => p.PoolStatus == PoolStatus.Open || p.PoolStatus == PoolStatus.Full || p.PoolStatus == PoolStatus.InProgress))
+            {
+                <div class="tm-pool-card">
+                    <div class="tm-pool-header">
+                        <div>
+                            <strong>Pool #@pool.PoolId</strong>
+                            <span class="tm-status @("tm-status-" + pool.PoolStatus.ToString().ToLowerInvariant())">
+                                @pool.PoolStatus
+                            </span>
+                        </div>
+                        <div>
+                            <span class="tm-table-subtext">
+                                @(pool.IsSharedPool ? "Shared Pool" : "Private Pool")
+                            </span>
+                            <span class="tm-table-subtext">
+                                Seats: @pool.SeatsUsed/@pool.VehicleCapacity
+                            </span>
+                            <span class="tm-table-subtext">
+                                @pool.TotalPassengers passenger@(pool.TotalPassengers == 1 ? "" : "s")
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="tm-pool-actions">
+                        @if (pool.CanMarkArrived)
+                        {
+                            <form asp-controller="Driver"
+                                  asp-action="MarkPoolArrived"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="poolId"
+                                       value="@pool.PoolId" />
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-primary tm-btn-small">
+                                    Mark arrived
+                                </button>
+                            </form>
+                        }
+
+                        @if (pool.CanStartTrip)
+                        {
+                            <form asp-controller="Driver"
+                                  asp-action="StartPoolTrip"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="poolId"
+                                       value="@pool.PoolId" />
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-primary tm-btn-small">
+                                    Start trip
+                                </button>
+                            </form>
+                        }
+
+                        @if (pool.CanReachDestination && !pool.IsSharedPool)
+                        {
+                            <form asp-controller="Driver"
+                                  asp-action="ReachPoolDestination"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="poolId"
+                                       value="@pool.PoolId" />
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-dark tm-btn-small">
+                                    Reach destination
+                                </button>
+                            </form>
+                        }
+                    </div>
+
+                    <div class="tm-pool-rides">
+                        <table class="tm-rides-table tm-pool-rides-table">
+                            <thead>
+                                <tr>
+                                    <th>Ride</th>
+                                    <th>Passenger</th>
+                                    <th>Route</th>
+                                    <th>Seats</th>
+                                    <th>Fare</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ride in pool.Rides)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>#@ride.RideId</strong>
+                                        </td>
+
+                                        <td>@ride.PassengerName</td>
+
+                                        <td>
+                                            <div class="tm-table-route">
+                                                <span>@ride.PickupZone</span>
+                                                <span class="tm-route-arrow">→</span>
+                                                <span>@ride.DestinationZone</span>
+                                            </div>
+                                        </td>
+
+                                        <td>@ride.Seats</td>
+
+                                        <td>
+                                            <strong>৳@ride.Fare.ToString("N2")</strong>
+                                        </td>
+
+                                        <td>
+                                            <span class="tm-status @("tm-status-" + ride.Status.ToString().ToLowerInvariant())">
+                                                @ride.Status
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            @if (pool.IsSharedPool && ride.CanDropOff)
+                                            {
+                                                <form asp-controller="Driver"
+                                                      asp-action="DropOffPassenger"
+                                                      method="post">
+                                                    @Html.AntiForgeryToken()
+
+                                                    <input type="hidden"
+                                                           name="rideId"
+                                                           value="@ride.RideId" />
+
+                                                    <button type="submit"
+                                                            class="tm-btn tm-btn-dark tm-btn-small">
+                                                        Drop off
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (ride.Status == RideStatus.WaitingForPayment)
+                                            {
+                                                <span class="tm-status tm-status-waitingforpayment">
+                                                    Waiting payment
+                                                </span>
+                                            }
+                                            else if (ride.Status == RideStatus.Completed)
+                                            {
+                                                <span class="tm-status tm-status-completed">
+                                                    Completed
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="tm-table-subtext">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Assigned rides (for completed/cancelled rides) -->
     <div class="tm-dashboard-panel">
         <div class="tm-panel-header">
             <div>
-                <h2>Assigned rides</h2>
-                <p>Update each trip as it progresses.</p>
+                <h2>All rides</h2>
+                <p>Complete ride history.</p>
             </div>
 
             <span class="tm-record-count">
@@ -323,7 +505,6 @@
                             <th>Fare</th>
                             <th>Status</th>
                             <th>Created</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
 
@@ -343,6 +524,22 @@
                                         <span class="tm-route-arrow">→</span>
                                         <span>@ride.DestinationZone</span>
                                     </div>
+
+                                    <span class="tm-table-subtext">
+                                        @(ride.IsSharedPool ? "Shared Pool" : "Private Pool") · #@ride.PoolId
+                                    </span>
+
+                                    <span class="tm-table-subtext">
+                                        Seats: @ride.PoolSeatsUsed/@ride.VehicleCapacity
+                                    </span>
+
+                                    <span class="tm-table-subtext">
+                                        @ride.TotalPassengersInPool passenger@(ride.TotalPassengersInPool == 1 ? "" : "s")
+                                    </span>
+
+                                    <span class="tm-table-subtext">
+                                        Pool: @ride.PoolStatus
+                                    </span>
                                 </td>
 
                                 <td>@ride.Seats</td>
@@ -364,78 +561,6 @@
                                     <span class="tm-table-subtext">
                                         @ride.CreatedAt.ToLocalTime().ToString("hh:mm tt")
                                     </span>
-                                </td>
-
-                                <td>
-                                    @if (ride.CanMarkArrived)
-                                    {
-                                        <form asp-controller="Driver"
-                                              asp-action="MarkArrived"
-                                              method="post">
-                                            @Html.AntiForgeryToken()
-
-                                            <input type="hidden"
-                                                   name="rideId"
-                                                   value="@ride.RideId" />
-
-                                            <button type="submit"
-                                                    class="tm-btn tm-btn-primary tm-btn-small">
-                                                Mark arrived
-                                            </button>
-                                        </form>
-                                    }
-                                    else if (ride.CanStartTrip)
-                                    {
-                                        <form asp-controller="Driver"
-                                              asp-action="StartTrip"
-                                              method="post">
-                                            @Html.AntiForgeryToken()
-
-                                            <input type="hidden"
-                                                   name="rideId"
-                                                   value="@ride.RideId" />
-
-                                            <button type="submit"
-                                                    class="tm-btn tm-btn-primary tm-btn-small">
-                                                Start trip
-                                            </button>
-                                        </form>
-                                    }
-                                    else if (ride.CanReachDestination)
-                                    {
-                                        <form asp-controller="Driver"
-                                              asp-action="ReachDestination"
-                                              method="post">
-                                            @Html.AntiForgeryToken()
-
-                                            <input type="hidden"
-                                                   name="rideId"
-                                                   value="@ride.RideId" />
-
-                                            <button type="submit"
-                                                    class="tm-btn tm-btn-dark tm-btn-small">
-                                                Reach destination
-                                            </button>
-                                        </form>
-                                    }
-                                    else if (ride.Status == RideStatus.WaitingForPayment)
-                                    {
-                                        <span class="tm-status tm-status-waitingforpayment">
-                                            Waiting for payment
-                                        </span>
-                                    }
-                                    else if (ride.Status == RideStatus.Completed)
-                                    {
-                                        <span class="tm-status tm-status-completed">
-                                            Completed
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="tm-table-subtext">
-                                            No action
-                                        </span>
-                                    }
                                 </td>
                             </tr>
                         }

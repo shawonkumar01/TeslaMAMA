@@ -140,8 +140,29 @@
                                     @if (ride.PoolId.HasValue)
                                     {
                                         <span class="tm-table-subtext">
-                                            Shared ride · Pool #@ride.PoolId
+                                            @(ride.IsSharedPool ? "Shared Pool" : "Private Pool") · #@ride.PoolId
                                         </span>
+
+                                        @if (ride.VehicleCapacity.HasValue)
+                                        {
+                                            <span class="tm-table-subtext">
+                                                Seats: @ride.PoolSeatsUsed/@ride.VehicleCapacity
+                                            </span>
+                                        }
+
+                                        @if (ride.OtherPassengersInPool.HasValue && ride.OtherPassengersInPool > 0)
+                                        {
+                                            <span class="tm-table-subtext">
+                                                +@ride.OtherPassengersInPool other @(ride.OtherPassengersInPool == 1 ? "passenger" : "passengers")
+                                            </span>
+                                        }
+
+                                        @if (ride.PoolStatus.HasValue)
+                                        {
+                                            <span class="tm-table-subtext">
+                                                Pool: @ride.PoolStatus
+                                            </span>
+                                        }
 
                                         @if (!string.IsNullOrWhiteSpace(ride.VehicleName))
                                         {
@@ -153,7 +174,7 @@
                                     else
                                     {
                                         <span class="tm-table-subtext">
-                                            Waiting for a match
+                                            @(ride.IsSharedPool ? "Waiting for pool match" : "Waiting for driver")
                                         </span>
                                     }
                                 </td>
@@ -206,6 +227,32 @@
                                         <span class="tm-status tm-status-completed">
                                             Completed
                                         </span>
+                                    }
+                                    else if (ride.Status == RideStatus.Cancelled)
+                                    {
+                                        <span class="tm-status tm-status-cancelled">
+                                            Cancelled
+                                        </span>
+                                    }
+                                    else if (ride.Status == RideStatus.Requested ||
+                                             ride.Status == RideStatus.Matched ||
+                                             ride.Status == RideStatus.DriverArrived)
+                                    {
+                                        <form asp-controller="Passenger"
+                                              asp-action="CancelRide"
+                                              method="post"
+                                              onsubmit="return confirm('Are you sure you want to cancel this ride?');">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="rideId"
+                                                   value="@ride.Id" />
+
+                                            <button type="submit"
+                                                    class="tm-btn tm-btn-danger">
+                                                Cancel Ride
+                                            </button>
+                                        </form>
                                     }
                                     else
                                     {
