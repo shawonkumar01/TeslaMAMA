@@ -153,6 +153,16 @@ textarea {
         color: var(--tm-forest-950);
     }
 
+.tm-btn-danger {
+    background: #b42318;
+    color: var(--tm-white);
+}
+
+    .tm-btn-danger:hover {
+        background: #9a1d14;
+        color: var(--tm-white);
+    }
+
 .tm-btn-logout {
     min-height: 40px;
     padding: 8px 16px;
@@ -1293,6 +1303,58 @@ main:has(.tm-dashboard) {
     color: var(--tm-green);
     font-size: 0.8rem;
     font-weight: 700;
+}
+
+/* ---- Pool cards ---- */
+
+.tm-pool-card {
+    padding: 24px;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-pool-card:last-child {
+    border-bottom: none;
+}
+
+.tm-pool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.tm-pool-header > div {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tm-pool-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-pool-rides {
+    margin-top: 16px;
+}
+
+.tm-pool-rides-table {
+    font-size: 0.9rem;
+}
+
+.tm-pool-rides-table th {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+}
+
+.tm-pool-rides-table td {
+    padding: 10px 12px;
 }
 
 /* ---- Rides table ---- */
