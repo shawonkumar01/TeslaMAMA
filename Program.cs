@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TeslaMAMA.Data;
 using TeslaMAMA.Models;
+using TeslaMAMA.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services
 builder.Services.AddScoped<
     TeslaMAMA.Services.IFareCalculationService,
     TeslaMAMA.Services.FixedFareCalculationService>();
+builder.Services.AddScoped<IDriverAssignmentService, DriverAssignmentService>();
 
 var app = builder.Build();
 await DbSeeder.SeedAsync(app.Services);
