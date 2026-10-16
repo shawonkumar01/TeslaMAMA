@@ -1718,13 +1718,603 @@ div[role="alert"].text-danger ul {
         padding: 34px 20px 26px;
     }
 }
-/* Dashboard: position the booking button closer to the header */
-.tm-dashboard-booking-action {
-    margin-top: -12px;
-    margin-bottom: 28px;
+
+/* =========================================================
+   Shared form helpers (used by Register vehicle)
+   ========================================================= */
+
+/* Field that spans both columns of .tm-booking-grid */
+.tm-field-wide {
+    grid-column: 1 / -1;
 }
 
-/* Navbar: make Book a ride match the Dashboard link */
-.tm-nav-link {
+.tm-field-hint {
+    margin: 0;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.tm-alert-success {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border: 1px solid #b9e6cc;
+    border-radius: var(--tm-radius-sm);
+    background: #e9f8ef;
+    color: #14633f;
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+/* ASP.NET renders an empty validation summary when the model is valid; hide it */
+.validation-summary-valid,
+div[role="alert"].text-danger.validation-summary-valid {
+    display: none;
+}
+
+/* =========================================================
+   Driver dashboard
+   ========================================================= */
+
+/* Space between stacked panels */
+.tm-dashboard-panel + .tm-dashboard-panel {
+    margin-top: 28px;
+}
+
+/* ---- Extra button variants ---- */
+
+.tm-btn-small {
+    min-height: 38px;
+    padding: 8px 14px;
+    font-size: 0.86rem;
+}
+
+.tm-btn-dark {
+    background: var(--tm-forest-800);
+    color: var(--tm-white);
+}
+
+    .tm-btn-dark:hover {
+        background: var(--tm-forest-900);
+        color: var(--tm-white);
+    }
+
+.tm-btn-danger-outline {
+    border-color: #f1c0bb;
+    background: var(--tm-white);
+    color: #b42318;
+}
+
+    .tm-btn-danger-outline:hover {
+        border-color: #b42318;
+        background: #fef3f2;
+        color: #b42318;
+    }
+
+.tm-btn-ghost-light {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: transparent;
+    color: var(--tm-white);
+}
+
+    .tm-btn-ghost-light:hover {
+        border-color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--tm-white);
+    }
+
+.tm-alert-error {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border: 1px solid #fecdca;
+    border-radius: var(--tm-radius-sm);
+    background: #fef3f2;
+    color: #b42318;
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+/* ---- Availability card (online / offline switch) ---- */
+
+.tm-availability {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding: 28px 32px;
+    border-radius: 20px;
+    background: linear-gradient(155deg, var(--tm-forest-800) 0%, var(--tm-forest-950) 100%);
+    color: var(--tm-white);
+    box-shadow: 0 18px 44px rgba(10, 31, 26, 0.18);
+}
+
+    .tm-availability::before {
+        position: absolute;
+        top: -110px;
+        right: -90px;
+        width: 280px;
+        height: 280px;
+        border: 1px solid rgba(169, 229, 203, 0.12);
+        border-radius: 50%;
+        box-shadow: 0 0 0 40px rgba(169, 229, 203, 0.04);
+        content: "";
+        pointer-events: none;
+    }
+
+    .tm-availability > * {
+        position: relative;
+        z-index: 1;
+    }
+
+.tm-availability-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 12px;
+    padding: 6px 14px;
+    border: 1px solid rgba(169, 229, 203, 0.25);
+    border-radius: 999px;
+    background: rgba(169, 229, 203, 0.1);
+    color: var(--tm-mint-300);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.tm-availability-offline .tm-status-dot {
+    background: #8aa399;
+    box-shadow: none;
+}
+
+.tm-availability h2 {
+    margin: 0 0 6px;
+    color: var(--tm-white);
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.tm-availability p {
+    max-width: 480px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.93rem;
+    line-height: 1.7;
+}
+
+.tm-availability form {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.tm-availability .tm-btn {
+    min-width: 150px;
+    min-height: 50px;
+    flex-shrink: 0;
+}
+
+/* ---- Incoming offer cards ---- */
+
+.tm-offer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    padding: 24px 28px 28px;
+}
+
+.tm-offer-card {
+    padding: 22px;
+    border: 1px solid var(--tm-border);
+    border-radius: 16px;
+    background: #fafcfb;
+}
+
+.tm-offer-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+    .tm-offer-top strong {
+        color: var(--tm-forest-900);
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+.tm-offer-route {
+    flex-wrap: wrap;
+    min-width: 0;
+    margin-bottom: 16px;
+    color: var(--tm-forest-900);
+    font-size: 0.97rem;
+}
+
+.tm-offer-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 0 14px;
+    padding: 14px 0;
+    border-top: 1px solid var(--tm-border);
+    border-bottom: 1px solid var(--tm-border);
+}
+
+    .tm-offer-meta dt {
+        margin-bottom: 2px;
+        color: var(--tm-muted);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .tm-offer-meta dd {
+        margin: 0;
+        color: var(--tm-forest-900);
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+.tm-offer-expiry {
+    margin: 0 0 16px;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+}
+
+.tm-offer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+    .tm-offer-actions form {
+        margin: 0;
+    }
+
+/* ---- Extra ride status pills ---- */
+
+.tm-status-waitingforpayment {
+    background: #fff5dd;
+    color: #956300;
+}
+
+.tm-rides-table td form {
+    margin: 0;
+}
+
+/* ---- Driver dashboard responsive ---- */
+
+@media (max-width: 900px) {
+    .tm-offer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .tm-availability {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 24px 22px;
+    }
+
+        .tm-availability form,
+        .tm-availability .tm-btn {
+            width: 100%;
+        }
+
+    .tm-offer-grid {
+        padding: 18px 20px 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tm-offer-card {
+        padding: 18px;
+    }
+}
+
+/* =========================================================
+   TeslaMAMA - Shared Vehicle Forms
+   Register Vehicle + Edit Vehicle
+   Uses the same forest-green and mint design
+   ========================================================= */
+
+/* Keep vehicle registration and editing forms consistent */
+.tm-dashboard:has(.tm-booking-panel) {
+    width: min(960px, calc(100% - 40px));
+}
+
+/* Main vehicle form panel */
+.tm-dashboard-panel.tm-booking-panel {
+    overflow: visible;
+    padding: 36px;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+    box-shadow: 0 10px 34px rgba(10, 31, 26, 0.06);
+}
+
+/* Two-column form layout */
+.tm-booking-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 24px;
+}
+
+.tm-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+    /* Field labels */
+    .tm-form-field label {
+        color: var(--tm-forest-900);
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+
+    /* Shared input styling */
+    .tm-form-field input,
+    .tm-form-field select,
+    .tm-form-field textarea {
+        display: block;
+        width: 100%;
+        min-height: 52px;
+        padding: 12px 16px;
+        border: 1px solid var(--tm-border);
+        border-radius: var(--tm-radius-sm);
+        background-color: #f7faf8;
+        color: var(--tm-text);
+        font-family: inherit;
+        font-size: 0.97rem;
+        line-height: 1.5;
+        transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Dropdowns */
+    .tm-form-field select {
+        padding-right: 44px;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'%3E%3Cpath d='M1 1.5l6 6 6-6' stroke='%231a6e55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 18px center;
+    }
+
+    /* Textareas */
+    .tm-form-field textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+        /* Hover states */
+        .tm-form-field input:hover,
+        .tm-form-field select:hover,
+        .tm-form-field textarea:hover {
+            border-color: rgba(26, 110, 85, 0.5);
+        }
+
+        /* Focus states */
+        .tm-form-field input:focus,
+        .tm-form-field select:focus,
+        .tm-form-field textarea:focus {
+            border-color: var(--tm-green);
+            background-color: var(--tm-white);
+            outline: 0;
+            box-shadow: 0 0 0 4px rgba(26, 110, 85, 0.15);
+        }
+
+        /* Highlight invalid fields */
+        .tm-form-field input.input-validation-error,
+        .tm-form-field select.input-validation-error,
+        .tm-form-field textarea.input-validation-error {
+            border-color: #b42318;
+            background-color: #fef3f2;
+        }
+
+    /* Validation messages */
+    .tm-form-field .text-danger {
+        color: #b42318 !important;
+        font-size: 0.85rem;
+    }
+
+        .tm-form-field .text-danger:empty {
+            display: none;
+        }
+
+.validation-summary-valid {
+    display: none;
+}
+
+div[role="alert"].text-danger:not(:empty) {
+    margin-bottom: 22px;
+    padding: 12px 16px;
+    border: 1px solid #fecdca;
+    border-radius: var(--tm-radius-sm);
+    background: #fef3f2;
+}
+
+div[role="alert"].text-danger ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+/* Full-width fields, such as Current Zone */
+.tm-field-wide {
+    grid-column: 1 / -1;
+}
+
+/* Help text beneath a field */
+.tm-field-hint {
+    margin: 0;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+/* Success message */
+.tm-alert-success {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border: 1px solid #b9e6cc;
+    border-radius: var(--tm-radius-sm);
+    background: #e9f8ef;
+    color: #14633f;
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+/* Error message */
+.tm-alert-error {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border: 1px solid #fecdca;
+    border-radius: var(--tm-radius-sm);
+    background: #fef3f2;
+    color: #b42318;
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+/* Dark-green information panel */
+.tm-fare-preview {
+    position: relative;
+    overflow: hidden;
+    margin: 30px 0;
+    padding: 28px 32px;
+    border-radius: 20px;
+    background: linear-gradient( 155deg, var(--tm-forest-800) 0%, var(--tm-forest-950) 100% );
+    color: var(--tm-white);
+}
+
+    .tm-fare-preview::before {
+        position: absolute;
+        top: -110px;
+        right: -90px;
+        width: 280px;
+        height: 280px;
+        border: 1px solid rgba(169, 229, 203, 0.12);
+        border-radius: 50%;
+        box-shadow: 0 0 0 40px rgba(169, 229, 203, 0.04);
+        content: "";
+        pointer-events: none;
+    }
+
+    .tm-fare-preview > div {
+        position: relative;
+        z-index: 1;
+    }
+
+    .tm-fare-preview .tm-eyebrow {
+        margin-bottom: 12px;
+        border-color: rgba(169, 229, 203, 0.25);
+        background: rgba(169, 229, 203, 0.1);
+        color: var(--tm-mint-300);
+    }
+
+    .tm-fare-preview h2 {
+        margin: 0 0 8px;
+        color: var(--tm-white);
+        font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+    }
+
+    .tm-fare-preview p:not(.tm-eyebrow) {
+        max-width: 520px;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.93rem;
+        line-height: 1.7;
+    }
+
+/* Consistent primary buttons on vehicle forms */
+.tm-booking-panel .tm-btn-primary {
+    min-height: 52px;
+    padding: 12px 36px;
+    border: 1px solid transparent;
+    border-radius: var(--tm-radius-sm);
+    background: var(--tm-green);
+    color: var(--tm-white);
+    font-size: 1rem;
     font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+    .tm-booking-panel .tm-btn-primary:hover {
+        background: var(--tm-green-hover);
+        color: var(--tm-white);
+    }
+
+/* Secondary buttons */
+.tm-btn-secondary {
+    border: 1px solid var(--tm-border);
+    background: var(--tm-white);
+    color: var(--tm-forest-800);
+}
+
+    .tm-btn-secondary:hover {
+        border-color: var(--tm-green);
+        color: var(--tm-green);
+    }
+
+/* Responsive layout */
+@media (max-width: 700px) {
+    .tm-dashboard:has(.tm-booking-panel) {
+        width: calc(100% - 32px);
+    }
+
+    .tm-dashboard-panel.tm-booking-panel {
+        padding: 24px 20px;
+    }
+
+    .tm-booking-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tm-field-wide {
+        grid-column: auto;
+    }
+
+    .tm-fare-preview {
+        padding: 24px 22px;
+    }
+
+    .tm-booking-panel .tm-btn-primary {
+        width: 100%;
+    }
+}
+/* =========================================================
+   Passenger dashboard: "Book a ride" button row
+   ========================================================= */
+
+.tm-dashboard-booking-action {
+    display: flex; /* removes the hidden line-height gap under the button */
+    margin: -12px 0 28px; /* top: pulls it up toward the header | bottom: space before the stat cards */
+}
+
+    .tm-dashboard-booking-action .tm-btn {
+        min-height: 50px;
+        padding: 12px 32px;
+    }
+
+@media (max-width: 760px) {
+    .tm-dashboard-booking-action {
+        margin-top: 0;
+    }
+
+        .tm-dashboard-booking-action .tm-btn {
+            width: 100%; /* full-width on phones, like the header button */
+        }
 }

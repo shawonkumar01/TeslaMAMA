@@ -1,0 +1,447 @@
+﻿@model TeslaMAMA.Models.DriverDashboardViewModel
+
+@{
+    ViewData["Title"] = "Driver Dashboard";
+    var hasVehicle = !string.IsNullOrWhiteSpace(Model.VehicleName);
+}
+
+<section class="tm-dashboard">
+
+    <!-- Header -->
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">DRIVER</p>
+            <h1>Driver dashboard</h1>
+            <p>Welcome, @Model.DriverName</p>
+        </div>
+
+        <a asp-controller="Home"
+           asp-action="Index"
+           class="tm-btn tm-btn-secondary">
+            Home
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="tm-alert-success" role="status">
+            @successMessage
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="tm-alert-error" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <!-- Availability and operating location -->
+    <div class="tm-availability @(Model.IsOnline ? "tm-availability-online" : "tm-availability-offline")">
+
+        <div class="tm-availability-text">
+            <span class="tm-availability-status">
+                <span class="tm-status-dot"></span>
+                @(Model.IsOnline ? "ONLINE" : "OFFLINE")
+            </span>
+
+            @if (!hasVehicle)
+            {
+                <h2>Register a vehicle to get started</h2>
+                <p>
+                    Register your vehicle before going online or receiving ride offers.
+                </p>
+            }
+            else if (Model.IsOnline)
+            {
+                <h2>You are online</h2>
+                <p>
+                    Operating location:
+                    <strong>@Model.CurrentZone</strong>
+                </p>
+                <p>You can receive new ride offers from this zone.</p>
+            }
+            else
+            {
+                <h2>You are offline</h2>
+                <p>
+                    Choose your current operating location before going online.
+                </p>
+            }
+        </div>
+
+        @if (!hasVehicle)
+        {
+            <a asp-controller="Vehicle"
+               asp-action="Register"
+               class="tm-btn tm-btn-light">
+                Register vehicle
+                <span aria-hidden="true">→</span>
+            </a>
+        }
+        else if (!Model.IsOnline)
+        {
+            <form asp-controller="Driver"
+                  asp-action="SetAvailability"
+                  method="post"
+                  class="tm-availability-form">
+
+                @Html.AntiForgeryToken()
+
+                <label for="currentZone" class="form-label">
+                    Choose your operating location
+                </label>
+
+                <select id="currentZone"
+                        name="currentZone"
+                        class="form-select mb-3"
+                        required>
+                    <option value="">Select your current zone</option>
+
+                    @foreach (var zone in Model.SupportedZones)
+                    {
+                        if (string.Equals(
+                            zone,
+                            Model.CurrentZone,
+                            StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@zone" selected>@zone</option>
+                        }
+                        else
+                        {
+                            <option value="@zone">@zone</option>
+                        }
+                    }
+                </select>
+
+                <button type="submit"
+                        name="isOnline"
+                        value="true"
+                        class="tm-btn tm-btn-light">
+                    Go online
+                    <span aria-hidden="true">→</span>
+                </button>
+            </form>
+        }
+        else
+        {
+            <form asp-controller="Driver"
+                  asp-action="SetAvailability"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="isOnline" value="false" />
+
+                <button type="submit"
+                        class="tm-btn tm-btn-ghost-light">
+                    Go offline
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (hasVehicle)
+    {
+        <div class="mt-3 mb-4">
+            <a asp-controller="Vehicle"
+               asp-action="Edit"
+               class="tm-btn tm-btn-secondary">
+                Edit vehicle
+            </a>
+        </div>
+    }
+
+    <!-- Dashboard statistics -->
+    <div class="tm-dashboard-stats">
+        <div class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-teal">⌖</div>
+            <p>Vehicle</p>
+            <h2>@(hasVehicle ? Model.VehicleName : "None")</h2>
+            <span>
+                Zone:
+                @(string.IsNullOrWhiteSpace(Model.CurrentZone)
+                    ? "Not set"
+                    : Model.CurrentZone)
+            </span>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-gold">↗</div>
+            <p>Active rides</p>
+            <h2>@Model.ActiveRides</h2>
+            <span>Not yet completed or cancelled</span>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-blue">♧</div>
+            <p>Assigned rides</p>
+            <h2>@Model.TotalAssignedRides</h2>
+            <span>Total assigned to your vehicle</span>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-teal">✓</div>
+            <p>Completed</p>
+            <h2>@Model.CompletedRides</h2>
+            <span>Finished trips</span>
+        </div>
+    </div>
+
+    <!-- Incoming ride offers -->
+    <div class="tm-dashboard-panel">
+        <div class="tm-panel-header">
+            <div>
+                <h2>Incoming ride offers</h2>
+                <p>Accept or reject requests before they expire.</p>
+            </div>
+
+            <span class="tm-record-count">
+                @Model.PendingOffers.Count pending
+            </span>
+        </div>
+
+        @if (Model.PendingOffers.Count == 0)
+        {
+            <div class="tm-dashboard-empty">
+                <div class="tm-empty-icon" aria-hidden="true">↗</div>
+                <h3>No pending offers</h3>
+                <p>
+                    @(Model.IsOnline
+                        ? "New ride offers will appear here when a passenger request matches your location."
+                        : "Choose your operating location and go online to receive ride offers.")
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="tm-offer-grid">
+                @foreach (var offer in Model.PendingOffers)
+                {
+                    <article class="tm-offer-card">
+                        <div class="tm-offer-top">
+                            <strong>Ride #@offer.RideId</strong>
+                            <span class="tm-status tm-status-requested">
+                                Pending
+                            </span>
+                        </div>
+
+                        <div class="tm-table-route tm-offer-route">
+                            <span>@offer.PickupZone</span>
+                            <span class="tm-route-arrow">→</span>
+                            <span>@offer.DestinationZone</span>
+                        </div>
+
+                        <dl class="tm-offer-meta">
+                            <div>
+                                <dt>Seats</dt>
+                                <dd>@offer.Seats</dd>
+                            </div>
+                            <div>
+                                <dt>Fare</dt>
+                                <dd>৳@offer.Fare.ToString("N2")</dd>
+                            </div>
+                            <div>
+                                <dt>Payment</dt>
+                                <dd>@offer.PaymentMethod</dd>
+                            </div>
+                        </dl>
+
+                        <p class="tm-offer-expiry">
+                            Expires at
+                            @offer.ExpiresAt.ToLocalTime().ToString("hh:mm:ss tt")
+                        </p>
+
+                        <div class="tm-offer-actions">
+                            <form asp-controller="Driver"
+                                  asp-action="AcceptOffer"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="offerId"
+                                       value="@offer.OfferId" />
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-primary tm-btn-small">
+                                    Accept
+                                </button>
+                            </form>
+
+                            <form asp-controller="Driver"
+                                  asp-action="RejectOffer"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="offerId"
+                                       value="@offer.OfferId" />
+
+                                <button type="submit"
+                                        class="tm-btn tm-btn-danger-outline tm-btn-small">
+                                    Reject
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Assigned rides -->
+    <div class="tm-dashboard-panel">
+        <div class="tm-panel-header">
+            <div>
+                <h2>Assigned rides</h2>
+                <p>Update each trip as it progresses.</p>
+            </div>
+
+            <span class="tm-record-count">
+                @Model.Rides.Count rides
+            </span>
+        </div>
+
+        @if (Model.Rides.Count == 0)
+        {
+            <div class="tm-dashboard-empty">
+                <div class="tm-empty-icon" aria-hidden="true">♧</div>
+                <h3>No rides assigned yet</h3>
+                <p>No rides have been assigned to your vehicle yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="tm-rides-table-wrapper">
+                <table class="tm-rides-table">
+                    <thead>
+                        <tr>
+                            <th>Ride</th>
+                            <th>Passenger</th>
+                            <th>Route</th>
+                            <th>Seats</th>
+                            <th>Fare</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var ride in Model.Rides)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>#@ride.RideId</strong>
+                                </td>
+
+                                <td>@ride.PassengerName</td>
+
+                                <td>
+                                    <div class="tm-table-route">
+                                        <span>@ride.PickupZone</span>
+                                        <span class="tm-route-arrow">→</span>
+                                        <span>@ride.DestinationZone</span>
+                                    </div>
+                                </td>
+
+                                <td>@ride.Seats</td>
+
+                                <td>
+                                    <strong>৳@ride.Fare.ToString("N2")</strong>
+                                </td>
+
+                                <td>
+                                    <span class="tm-status @("tm-status-" + ride.Status.ToString().ToLowerInvariant())">
+                                        @ride.Status
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="tm-date">
+                                        @ride.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                    </span>
+                                    <span class="tm-table-subtext">
+                                        @ride.CreatedAt.ToLocalTime().ToString("hh:mm tt")
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @if (ride.CanMarkArrived)
+                                    {
+                                        <form asp-controller="Driver"
+                                              asp-action="MarkArrived"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="rideId"
+                                                   value="@ride.RideId" />
+
+                                            <button type="submit"
+                                                    class="tm-btn tm-btn-primary tm-btn-small">
+                                                Mark arrived
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (ride.CanStartTrip)
+                                    {
+                                        <form asp-controller="Driver"
+                                              asp-action="StartTrip"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="rideId"
+                                                   value="@ride.RideId" />
+
+                                            <button type="submit"
+                                                    class="tm-btn tm-btn-primary tm-btn-small">
+                                                Start trip
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (ride.CanReachDestination)
+                                    {
+                                        <form asp-controller="Driver"
+                                              asp-action="ReachDestination"
+                                              method="post">
+                                            @Html.AntiForgeryToken()
+
+                                            <input type="hidden"
+                                                   name="rideId"
+                                                   value="@ride.RideId" />
+
+                                            <button type="submit"
+                                                    class="tm-btn tm-btn-dark tm-btn-small">
+                                                Reach destination
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (ride.Status == RideStatus.WaitingForPayment)
+                                    {
+                                        <span class="tm-status tm-status-waitingforpayment">
+                                            Waiting for payment
+                                        </span>
+                                    }
+                                    else if (ride.Status == RideStatus.Completed)
+                                    {
+                                        <span class="tm-status tm-status-completed">
+                                            Completed
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-table-subtext">
+                                            No action
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>

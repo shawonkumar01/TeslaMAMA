@@ -1,6 +1,8 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TeslaMAMA.Data;
 using TeslaMAMA.Models;
 
 namespace TeslaMAMA.Controllers;
@@ -9,13 +11,16 @@ public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly AppDbContext _dbContext;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        AppDbContext dbContext)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _dbContext = dbContext;
     }
 
     [HttpGet]
@@ -34,6 +39,7 @@ public class AccountController : Controller
         var email = model.Email.Trim();
 
         var existingUser = await _userManager.FindByEmailAsync(email);
+
         if (existingUser != null)
         {
             ModelState.AddModelError(
@@ -43,9 +49,12 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var role = model.AccountType == "Driver"
-            ? UserRole.Driver
-            : UserRole.Passenger;
+        var role = string.Equals(
+            model.AccountType,
+            "Driver",
+            StringComparison.OrdinalIgnoreCase)
+                ? UserRole.Driver
+                : UserRole.Passenger;
 
         var user = new ApplicationUser
         {
@@ -66,7 +75,9 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, role.ToString());
+        var roleResult = await _userManager.AddToRoleAsync(
+            user,
+            role.ToString());
 
         if (!roleResult.Succeeded)
         {
@@ -83,7 +94,16 @@ public class AccountController : Controller
         TempData["SuccessMessage"] =
             "Your account has been created successfully!";
 
-        return RedirectToAction(nameof(RegisterSuccess));
+        if (role == UserRole.Driver)
+        {
+            return RedirectToAction(
+                "Register",
+                "Vehicle");
+        }
+
+        return RedirectToAction(
+            "Dashboard",
+            "Passenger");
     }
 
     [HttpGet]
@@ -136,6 +156,21 @@ public class AccountController : Controller
                 return Redirect(returnUrl);
             }
 
+            if (user.Role == UserRole.Driver)
+            {
+                var hasVehicle = await _dbContext.Vehicles
+                    .AnyAsync(v => v.DriverId == user.Id);
+
+                return hasVehicle
+                    ? RedirectToAction("Index", "Driver")
+                    : RedirectToAction("Register", "Vehicle");
+            }
+
+            if (user.Role == UserRole.Passenger)
+            {
+                return RedirectToAction("Dashboard", "Passenger");
+            }
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -160,7 +195,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
+
         return RedirectToAction("Index", "Home");
     }
-
 }

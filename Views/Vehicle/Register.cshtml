@@ -1,0 +1,135 @@
+﻿@model TeslaMAMA.Models.RegisterVehicleViewModel
+
+@{
+    ViewData["Title"] = "Edit Vehicle";
+}
+
+<section class="tm-dashboard">
+
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">DRIVER SETTINGS</p>
+            <h1>Edit your vehicle</h1>
+            <p>
+                Update your vehicle details and current operating location.
+            </p>
+        </div>
+
+        <a asp-controller="Driver"
+           asp-action="Index"
+           class="tm-btn tm-btn-secondary">
+            Back to dashboard
+        </a>
+    </div>
+
+    <div class="tm-dashboard-panel tm-booking-panel">
+
+        @if (TempData["SuccessMessage"] is string successMessage)
+        {
+            <div class="tm-alert-success" role="status">
+                @successMessage
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] is string errorMessage)
+        {
+            <div class="tm-alert-error" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <form asp-controller="Vehicle"
+              asp-action="Edit"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger"
+                 role="alert">
+            </div>
+
+            <div class="tm-booking-grid">
+
+                <div class="tm-form-field">
+                    <label asp-for="Name">Vehicle name</label>
+
+                    <input asp-for="Name"
+                           placeholder="e.g. Toyota Corolla" />
+
+                    <span asp-validation-for="Name"
+                          class="text-danger">
+                    </span>
+                </div>
+
+                <div class="tm-form-field">
+                    <label asp-for="Capacity">Passenger capacity</label>
+
+                    <select asp-for="Capacity">
+                        @for (var seats = 1; seats <= 8; seats++)
+                        {
+                            <option value="@seats">
+                                @seats @(seats == 1 ? "passenger" : "passengers")
+                            </option>
+                        }
+                    </select>
+
+                    <span asp-validation-for="Capacity"
+                          class="text-danger">
+                    </span>
+                </div>
+
+                <div class="tm-form-field tm-field-wide">
+                    <label asp-for="CurrentZone">Current zone</label>
+
+                    <select asp-for="CurrentZone">
+                        <option value="">Select your current location</option>
+
+                        @foreach (var zone in Model.SupportedZones)
+                        {
+                            <option value="@zone">@zone</option>
+                        }
+                    </select>
+
+                    <span asp-validation-for="CurrentZone"
+                          class="text-danger">
+                    </span>
+
+                    <p class="tm-field-hint">
+                        Select the zone where your vehicle is currently located.
+                        You must go offline before editing your vehicle.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="tm-fare-preview">
+                <div>
+                    <p class="tm-eyebrow">VEHICLE SETTINGS</p>
+                    <h2>Update vehicle details</h2>
+                    <p>
+                        Your changes will be saved to your registered vehicle.
+                        You can manage your availability from the driver dashboard.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="tm-btn tm-btn-primary">
+                    Save changes
+                </button>
+
+                <a asp-controller="Driver"
+                   asp-action="Index"
+                   class="tm-btn tm-btn-secondary">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

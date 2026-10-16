@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TeslaMAMA.Models;
 
@@ -17,6 +16,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RideRequest> RideRequests => Set<RideRequest>();
     public DbSet<RideStatusHistory> RideStatusHistory => Set<RideStatusHistory>();
     public DbSet<PoolDecline> PoolDeclines => Set<PoolDecline>();
+    public DbSet<DriverOffer> DriverOffers => Set<DriverOffer>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,10 +24,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Vehicle>(entity =>
         {
-            entity.Property(v => v.Name).HasMaxLength(100).IsRequired();
-            entity.Property(v => v.CurrentZone).HasMaxLength(50).IsRequired();
+            entity.Property(v => v.Name)
+                .HasMaxLength(100)
+                .IsRequired();
 
-            entity.HasIndex(v => v.DriverId).IsUnique();
+            entity.Property(v => v.CurrentZone)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasIndex(v => v.DriverId)
+                .IsUnique();
 
             entity.HasOne(v => v.Driver)
                 .WithOne()
@@ -58,9 +64,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
-            entity.Property(r => r.PickupZone).HasMaxLength(50).IsRequired();
-            entity.Property(r => r.DestinationZone).HasMaxLength(50).IsRequired();
-            entity.Property(r => r.FinalFare).HasPrecision(10, 2);
+            entity.Property(r => r.PickupZone)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(r => r.DestinationZone)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(r => r.FinalFare)
+                .HasPrecision(10, 2);
 
             entity.HasIndex(r => r.Status);
             entity.HasIndex(r => r.PoolId);
@@ -78,20 +91,24 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.ToTable(t =>
             {
                 t.HasCheckConstraint(
-                    "CK_RideRequest_Seats", "\"Seats\" BETWEEN 1 AND 3");
+                    "CK_RideRequest_Seats",
+                    "\"Seats\" BETWEEN 1 AND 3");
 
                 t.HasCheckConstraint(
-                    "CK_RideRequest_FinalFare", "\"FinalFare\" >= 0");
+                    "CK_RideRequest_FinalFare",
+                    "\"FinalFare\" >= 0");
             });
         });
 
         builder.Entity<RideStatusHistory>(entity =>
         {
             entity.Property(h => h.FromStatus)
-                .HasConversion<string>().HasMaxLength(20);
+                .HasConversion<string>()
+                .HasMaxLength(20);
 
             entity.Property(h => h.ToStatus)
-                .HasConversion<string>().HasMaxLength(20);
+                .HasConversion<string>()
+                .HasMaxLength(20);
 
             entity.HasOne(h => h.RideRequest)
                 .WithMany(r => r.StatusHistory)
@@ -100,7 +117,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<PoolDecline>(entity =>
         {
-            entity.HasIndex(d => new { d.RideRequestId, d.VehicleId })
+            entity.HasIndex(d => new
+            {
+                d.RideRequestId,
+                d.VehicleId
+            })
                 .IsUnique();
 
             entity.HasOne(d => d.RideRequest)
@@ -110,6 +131,36 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(d => d.Vehicle)
                 .WithMany(v => v.Declines)
                 .HasForeignKey(d => d.VehicleId);
+        });
+
+        builder.Entity<DriverOffer>(entity =>
+        {
+            entity.Property(o => o.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasIndex(o => new
+            {
+                o.RideRequestId,
+                o.VehicleId
+            })
+                .IsUnique();
+
+            entity.HasIndex(o => new
+            {
+                o.VehicleId,
+                o.Status
+            });
+
+            entity.HasOne(o => o.RideRequest)
+                .WithMany()
+                .HasForeignKey(o => o.RideRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(o => o.Vehicle)
+                .WithMany()
+                .HasForeignKey(o => o.VehicleId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
