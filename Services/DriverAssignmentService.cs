@@ -147,12 +147,9 @@ public class DriverAssignmentService : IDriverAssignmentService
                                 r.Status != RideStatus.Cancelled)
                             .All(r =>
                                 r.RideType == RideType.SharedPool &&
-                                string.Equals(
-                                    r.PickupZone,
-                                    ride.PickupZone,
-                                    StringComparison.OrdinalIgnoreCase) &&
                                 RouteCompatibilityService
-                                    .AreDestinationsCompatible(
+                                    .AreRoutesCompatible(
+                                        ride.PickupZone,
                                         r.DestinationZone,
                                         ride.DestinationZone)));
 
@@ -175,13 +172,10 @@ public class DriverAssignmentService : IDriverAssignmentService
                     var pendingIsCompatible = pendingOffers
                         .Where(o => o.RideRequestId != ride.Id)
                         .All(o =>
-                            string.Equals(
-                                o.RideRequest.PickupZone,
-                                ride.PickupZone,
-                                StringComparison.OrdinalIgnoreCase) &&
                             o.RideRequest.RideType == RideType.SharedPool &&
                             RouteCompatibilityService
-                                .AreDestinationsCompatible(
+                                .AreRoutesCompatible(
+                                    ride.PickupZone,
                                     o.RideRequest.DestinationZone,
                                     ride.DestinationZone) &&
                             compatiblePool.RideRequests
@@ -190,9 +184,10 @@ public class DriverAssignmentService : IDriverAssignmentService
                                     r.Status != RideStatus.Cancelled)
                                 .All(r =>
                                     RouteCompatibilityService
-                                        .AreDestinationsCompatible(
-                                            r.DestinationZone,
-                                            o.RideRequest.DestinationZone)));
+                                        .AreRoutesCompatible(
+                                            ride.PickupZone,
+                                            o.RideRequest.DestinationZone,
+                                            r.DestinationZone)));
 
                     if (!pendingIsCompatible)
                         continue;
@@ -207,7 +202,8 @@ public class DriverAssignmentService : IDriverAssignmentService
                             o.RideRequest.PickupZone,
                             ride.PickupZone,
                             StringComparison.OrdinalIgnoreCase) ||
-                        !RouteCompatibilityService.AreDestinationsCompatible(
+                        !RouteCompatibilityService.AreRoutesCompatible(
+                            ride.PickupZone,
                             o.RideRequest.DestinationZone,
                             ride.DestinationZone)))
                     {
