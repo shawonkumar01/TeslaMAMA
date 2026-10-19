@@ -405,9 +405,10 @@ public class DriverController : Controller
                          r.PickupZone,
                          ride.PickupZone,
                          StringComparison.OrdinalIgnoreCase) &&
-                     RouteCompatibilityService.AreDestinationsCompatible(
+                     RouteCompatibilityService.AreRoutesCompatible(
+                        ride.PickupZone,
                         r.DestinationZone,
-                            ride.DestinationZone))));
+                        ride.DestinationZone))));
 
             if (activePools.Count > 0 && pool is null)
             {

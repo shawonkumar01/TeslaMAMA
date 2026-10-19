@@ -957,7 +957,7 @@ textarea {
     }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
     .tm-nav-container {
         min-height: 68px;
         padding: 12px 0;
@@ -970,17 +970,13 @@ textarea {
     }
 
     .tm-nav-links {
-        display: none;
+        display: flex;
         flex: 0 0 100%;
         flex-direction: column;
         align-items: stretch;
         gap: 0;
         padding: 6px 0 8px;
     }
-
-        .tm-nav-links.tm-nav-open {
-            display: flex;
-        }
 
         .tm-nav-links > .tm-nav-link {
             display: block;
