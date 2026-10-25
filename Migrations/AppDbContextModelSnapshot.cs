@@ -344,6 +344,9 @@ namespace TeslaMAMA.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<int>("OfferAttempts")
+                        .HasColumnType("integer");
+
                     b.Property<string>("PassengerId")
                         .IsRequired()
                         .HasColumnType("text");

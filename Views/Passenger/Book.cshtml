@@ -45,6 +45,9 @@
                     </select>
                     <span asp-validation-for="PickupZone"
                           class="text-danger"></span>
+                    <div id="driver-availability-warning" class="tm-availability-warning" style="display: none;">
+                        ⚠️ No drivers are currently online in this zone. Please try a different pickup zone or wait for some time.
+                    </div>
                 </div>
 
                 <div class="tm-form-field">
@@ -135,8 +138,35 @@
             const rideType = document.getElementById("ride-type");
             const amount = document.getElementById("fare-amount");
             const details = document.getElementById("fare-details");
+            const warning = document.getElementById("driver-availability-warning");
 
             let currentRequest = null;
+
+            async function checkDriverAvailability() {
+                const zone = pickup.value;
+                if (!zone) {
+                    warning.style.display = "none";
+                    return;
+                }
+
+                try {
+                    const response = await fetch(
+                        '@Url.Action("CheckDriverAvailability", "Passenger")' +
+                        "?zone=" + encodeURIComponent(zone),
+                        {
+                            method: "GET",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        }
+                    );
+
+                    const result = await response.json();
+                    warning.style.display = result.hasDrivers ? "none" : "block";
+                } catch (error) {
+                    warning.style.display = "none";
+                }
+            }
 
             async function updateFare() {
                 if (currentRequest) {
@@ -227,7 +257,10 @@
                 }
             }
 
-            pickup.addEventListener("change", updateFare);
+            pickup.addEventListener("change", () => {
+                checkDriverAvailability();
+                updateFare();
+            });
             destination.addEventListener("change", updateFare);
             seats.addEventListener("change", updateFare);
             rideType.addEventListener("change", updateFare);
