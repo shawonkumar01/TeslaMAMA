@@ -25,7 +25,8 @@ public enum RideStatus
     Started,
     WaitingForPayment,
     Completed,
-    Cancelled
+    Cancelled,
+    NoDriverAvailable
 }
 
 public enum PaymentMethod
