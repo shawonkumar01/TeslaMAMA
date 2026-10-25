@@ -517,41 +517,180 @@ public async Task<IActionResult> ConfirmPayment(
         var now = DateTime.UtcNow;
         var previousStatus = ride.Status;
 
-        ride.Status = RideStatus.Completed;
-
-        _dbContext.RideStatusHistory.Add(new RideStatusHistory
+        // Create payment record with Pending status first
+        var payment = new Payment
         {
             RideRequestId = ride.Id,
-            FromStatus = previousStatus,
-            ToStatus = RideStatus.Completed,
-            ChangedAt = now
-        });
+            Amount = ride.FinalFare,
+            Method = ride.PaymentMethod,
+            Status = PaymentStatus.Pending,
+            TransactionId = $"TXN-{DateTime.UtcNow:yyyyMMddHHmmss}-{ride.Id}",
+            CreatedAt = now
+        };
 
-        // Complete the pool only when no other ride remains active.
-        if (ride.Pool is not null)
+        _dbContext.Payments.Add(payment);
+
+        try
         {
-            var hasOtherActiveRides = await _dbContext.RideRequests
-                .AnyAsync(
-                    request =>
-                        request.PoolId == ride.PoolId &&
-                        request.Id != ride.Id &&
-                        request.Status != RideStatus.Completed &&
-                        request.Status != RideStatus.Cancelled,
-                    cancellationToken);
+            // Simulate payment processing - in production, integrate with actual payment gateway
+            await Task.Delay(100, cancellationToken);
 
-            if (!hasOtherActiveRides)
+            // Mark payment as completed
+            payment.Status = PaymentStatus.Completed;
+            payment.CompletedAt = now;
+
+            ride.Status = RideStatus.Completed;
+
+            _dbContext.RideStatusHistory.Add(new RideStatusHistory
             {
-                ride.Pool.Status = PoolStatus.Completed;
+                RideRequestId = ride.Id,
+                FromStatus = previousStatus,
+                ToStatus = RideStatus.Completed,
+                ChangedAt = now
+            });
+
+            // Complete the pool only when no other ride remains active.
+            if (ride.Pool is not null)
+            {
+                var hasOtherActiveRides = await _dbContext.RideRequests
+                    .AnyAsync(
+                        request =>
+                            request.PoolId == ride.PoolId &&
+                            request.Id != ride.Id &&
+                            request.Status != RideStatus.Completed &&
+                            request.Status != RideStatus.Cancelled,
+                        cancellationToken);
+
+                if (!hasOtherActiveRides)
+                {
+                    ride.Pool.Status = PoolStatus.Completed;
+                }
             }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            TempData["BookingSuccess"] =
+                $"Payment confirmed for ride #{ride.Id}. Your ride is complete.";
+
+            return RedirectToAction(nameof(Dashboard));
         }
+        catch (Exception)
+        {
+            // Mark payment as failed
+            payment.Status = PaymentStatus.Failed;
+            payment.Notes = "Payment processing failed";
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            TempData["Error"] =
+                $"Payment processing failed for ride #{ride.Id}. Please try again.";
+
+            return RedirectToAction(nameof(Dashboard));
+        }
+    }
+
+    // POST: /Passenger/RefundPayment
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RefundPayment(
+        int paymentId,
+        string refundReason,
+        CancellationToken cancellationToken)
+    {
+        var passenger = await _userManager.GetUserAsync(User);
+
+        if (passenger is null)
+            return Challenge();
+
+        if (passenger.Role != UserRole.Passenger)
+            return Forbid();
+
+        if (string.IsNullOrWhiteSpace(refundReason))
+        {
+            TempData["Error"] = "Please provide a reason for the refund.";
+            return RedirectToAction(nameof(PaymentHistory));
+        }
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        var payment = await _dbContext.Payments
+            .Include(p => p.RideRequest)
+            .FirstOrDefaultAsync(
+                p => p.Id == paymentId &&
+                     p.RideRequest.PassengerId == passenger.Id,
+                cancellationToken);
+
+        if (payment is null)
+            return NotFound();
+
+        if (payment.Status != PaymentStatus.Completed)
+        {
+            TempData["Error"] =
+                "Only completed payments can be refunded.";
+
+            return RedirectToAction(nameof(PaymentHistory));
+        }
+
+        // Set status to RefundRequested - admin will approve/reject later
+        payment.Status = PaymentStatus.RefundRequested;
+        payment.Notes = $"Refund requested on {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}. Reason: {refundReason}";
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         TempData["BookingSuccess"] =
-            $"Payment confirmed for ride #{ride.Id}. Your ride is complete.";
+            $"Refund request for payment #{payment.Id} has been submitted. Admin will review it shortly.";
 
-        return RedirectToAction(nameof(Dashboard));
+        return RedirectToAction(nameof(PaymentHistory));
+    }
+
+    // GET: /Passenger/PaymentHistory
+    [HttpGet]
+    public async Task<IActionResult> PaymentHistory(CancellationToken cancellationToken)
+    {
+        var passenger = await _userManager.GetUserAsync(User);
+
+        if (passenger is null)
+            return Challenge();
+
+        if (passenger.Role != UserRole.Passenger)
+            return Forbid();
+
+        var payments = await _dbContext.Payments
+            .AsNoTracking()
+            .Include(p => p.RideRequest)
+            .Where(p => p.RideRequest.PassengerId == passenger.Id)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new PaymentRecord
+            {
+                Id = p.Id,
+                RideId = p.RideRequestId,
+                PickupZone = p.RideRequest.PickupZone,
+                DestinationZone = p.RideRequest.DestinationZone,
+                Amount = p.Amount,
+                Method = p.Method,
+                Status = p.Status,
+                TransactionId = p.TransactionId,
+                CreatedAt = p.CreatedAt,
+                CompletedAt = p.CompletedAt,
+                RefundedAt = p.RefundedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var viewModel = new PaymentHistoryViewModel
+        {
+            FullName = string.IsNullOrWhiteSpace(passenger.FullName)
+                ? passenger.UserName ?? "Passenger"
+                : passenger.FullName,
+            Payments = payments,
+            TotalSpent = payments.Where(p => p.Status == PaymentStatus.Completed || p.Status == PaymentStatus.Refunded).Sum(p => p.Amount)
+        };
+
+        return View(viewModel);
     }
 
 }
