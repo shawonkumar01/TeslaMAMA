@@ -218,7 +218,7 @@
             <div class="tm-offer-grid">
                 @foreach (var offer in Model.PendingOffers)
                 {
-                    <article class="tm-offer-card">
+                    <article class="tm-offer-card" data-expires-at="@offer.ExpiresAt.ToLocalTime().ToString("o")">
                         <div class="tm-offer-top">
                             <strong>Ride #@offer.RideId</strong>
                             <span class="tm-status tm-status-requested">
@@ -247,10 +247,12 @@
                             </div>
                         </dl>
 
-                        <p class="tm-offer-expiry">
-                            Expires at
-                            @offer.ExpiresAt.ToLocalTime().ToString("hh:mm:ss tt")
-                        </p>
+                        <div class="tm-timer-container">
+                            <div class="tm-timer-bar">
+                                <div class="tm-timer-progress" data-expires-at="@offer.ExpiresAt.ToLocalTime().ToString("o")"></div>
+                            </div>
+                            <span class="tm-timer-text">Expires in <span class="tm-countdown" data-expires-at="@offer.ExpiresAt.ToLocalTime().ToString("o")">Loading...</span></span>
+                        </div>
 
                         <div class="tm-offer-actions">
                             <form asp-controller="Driver"
@@ -570,3 +572,75 @@
         }
     </div>
 </section>
+
+@section Scripts {
+    <script>
+        // Countdown timer for driver offers
+        function updateCountdowns() {
+            document.querySelectorAll('.tm-countdown').forEach(element => {
+                const expiresAt = new Date(element.dataset.expiresAt);
+                const now = new Date();
+                const timeRemaining = expiresAt - now;
+
+                if (timeRemaining <= 0) {
+                    element.textContent = 'Expired';
+                    // Optionally refresh the page after a delay
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    const minutes = Math.floor(timeRemaining / 60000);
+                    const seconds = Math.floor((timeRemaining % 60000) / 1000);
+                    element.textContent = `${minutes}m ${seconds}s`;
+                }
+            });
+
+            // Update timer progress bars
+            document.querySelectorAll('.tm-timer-progress').forEach(element => {
+                const expiresAt = new Date(element.dataset.expiresAt);
+                const now = new Date();
+                const timeRemaining = expiresAt - now;
+                const totalDuration = 30000; // 30 seconds in milliseconds
+                const percentage = Math.max(0, (timeRemaining / totalDuration) * 100);
+                element.style.width = percentage + '%';
+            });
+        }
+
+        // Update countdowns every second
+        setInterval(updateCountdowns, 1000);
+        updateCountdowns(); // Initial update
+
+        // Auto-refresh dashboard every 30 seconds to get new offers
+        let previousOfferCount = @Model.PendingOffers.Count;
+        setInterval(() => {
+            fetch('/Driver/Index')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newOfferCount = doc.querySelectorAll('.tm-offer-card').length;
+
+                    if (newOfferCount > previousOfferCount) {
+                        showNotification('New Ride Offer', 'You have a new ride request!', 'info');
+                        previousOfferCount = newOfferCount;
+                    } else if (newOfferCount < previousOfferCount) {
+                        previousOfferCount = newOfferCount;
+                    }
+
+                    location.reload();
+                });
+        }, 30000);
+
+        // Show notification on accept/reject
+        document.querySelectorAll('.tm-offer-actions form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const isAccept = this.action.includes('AcceptOffer');
+                const rideId = this.querySelector('input[name="offerId"]').value;
+
+                if (isAccept) {
+                    showNotification('Offer Accepted', `Ride #${rideId} has been accepted.`, 'success');
+                } else {
+                    showNotification('Offer Rejected', `Ride #${rideId} has been rejected.`, 'info');
+                }
+            });
+        });
+    </script>
+}
