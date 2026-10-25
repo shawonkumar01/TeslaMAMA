@@ -6,6 +6,8 @@ namespace TeslaMAMA.Services;
 
 public class RideOfferTimeoutService : BackgroundService
 {
+    private const int MaxOfferAttempts = 2; // Lowered for testing
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RideOfferTimeoutService> _logger;
 
@@ -82,13 +84,49 @@ public class RideOfferTimeoutService : BackgroundService
         if (expiredOffers.Count > 0)
             await dbContext.SaveChangesAsync(cancellationToken);
 
+        // Mark rides as NoDriverAvailable if max attempts reached OR no eligible drivers
+        var failedRides = await dbContext.RideRequests
+            .Where(r =>
+                r.Status == RideStatus.Requested &&
+                !dbContext.DriverOffers.Any(o =>
+                    o.RideRequestId == r.Id &&
+                    o.Status == DriverOfferStatus.Pending &&
+                    o.ExpiresAt > now) &&
+                (r.OfferAttempts >= MaxOfferAttempts ||
+                 !dbContext.Vehicles.Any(v =>
+                     v.CurrentZone == r.PickupZone &&
+                     v.IsOnline &&
+                     v.Driver != null)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var ride in failedRides)
+        {
+            ride.Status = RideStatus.NoDriverAvailable;
+            _logger.LogInformation(
+                "Ride {RideId} marked as NoDriverAvailable. Attempts: {Attempts}, HasDrivers: {HasDrivers}",
+                ride.Id,
+                ride.OfferAttempts,
+                dbContext.Vehicles.Any(v =>
+                    v.CurrentZone == ride.PickupZone &&
+                    v.IsOnline &&
+                    v.Driver != null));
+        }
+
+        if (failedRides.Count > 0)
+            await dbContext.SaveChangesAsync(cancellationToken);
+
         var rideIds = await dbContext.RideRequests
             .Where(r =>
                 r.Status == RideStatus.Requested &&
                 !dbContext.DriverOffers.Any(o =>
                     o.RideRequestId == r.Id &&
                     o.Status == DriverOfferStatus.Pending &&
-                    o.ExpiresAt > now))
+                    o.ExpiresAt > now) &&
+                r.OfferAttempts < MaxOfferAttempts &&
+                dbContext.Vehicles.Any(v =>
+                    v.CurrentZone == r.PickupZone &&
+                    v.IsOnline &&
+                    v.Driver != null))
             .OrderBy(r => r.CreatedAt)
             .Select(r => r.Id)
             .Take(100)

@@ -225,8 +225,11 @@ public class DriverAssignmentService : IDriverAssignmentService
                 VehicleId = vehicle.Id,
                 Status = DriverOfferStatus.Pending,
                 CreatedAt = now,
-                ExpiresAt = now.AddSeconds(90)
+                ExpiresAt = now.AddSeconds(30)
             };
+
+            // Increment offer attempts
+            ride.OfferAttempts++;
 
             _dbContext.DriverOffers.Add(offer);
             await _dbContext.SaveChangesAsync(cancellationToken);

@@ -127,6 +127,23 @@ public class PassengerController : Controller
         return View(model);
     }
 
+    // GET: /Passenger/CheckDriverAvailability?zone=Notun Bazar
+    [HttpGet]
+    public async Task<IActionResult> CheckDriverAvailability(string zone)
+    {
+        if (string.IsNullOrWhiteSpace(zone))
+            return Json(new { hasDrivers = false });
+
+        var hasDrivers = await _dbContext.Vehicles
+            .AsNoTracking()
+            .AnyAsync(v =>
+                v.CurrentZone == zone &&
+                v.IsOnline &&
+                v.Driver != null);
+
+        return Json(new { hasDrivers });
+    }
+
     // POST: /Passenger/Book
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -182,6 +199,49 @@ public class PassengerController : Controller
             ModelState.AddModelError(
                 string.Empty,
                 "This route is not currently supported. Please select another route.");
+
+            return View(model);
+        }
+
+        // Check if there are any online drivers in the pickup zone
+        var hasOnlineDrivers = await _dbContext.Vehicles
+            .AsNoTracking()
+            .AnyAsync(v =>
+                v.CurrentZone == model.PickupZone &&
+                v.IsOnline &&
+                v.Driver != null,
+                cancellationToken);
+
+        if (!hasOnlineDrivers)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                $"No drivers are currently online in {model.PickupZone}. Please try a different pickup zone or try again later.");
+
+            return View(model);
+        }
+
+        // Check if passenger already has an active ride
+        var activeStatuses = new[]
+        {
+            RideStatus.Requested,
+            RideStatus.Matched,
+            RideStatus.DriverArrived,
+            RideStatus.Started
+        };
+
+        var hasActiveRide = await _dbContext.RideRequests
+            .AsNoTracking()
+            .AnyAsync(r =>
+                r.PassengerId == passenger.Id &&
+                activeStatuses.Contains(r.Status),
+                cancellationToken);
+
+        if (hasActiveRide)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                "You already have an active ride. Please cancel or complete your current ride before booking a new one.");
 
             return View(model);
         }
