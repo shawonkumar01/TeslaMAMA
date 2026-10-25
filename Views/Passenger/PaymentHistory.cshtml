@@ -1,0 +1,321 @@
+@model TeslaMAMA.Models.PaymentHistoryViewModel
+@using TeslaMAMA.Models
+
+@{
+    ViewData["Title"] = "Payment History";
+}
+
+<!-- Refund Modal -->
+<div id="refundModal" class="tm-modal" style="display: none;">
+    <div class="tm-modal-content">
+        <div class="tm-modal-header">
+            <h3>Request Refund</h3>
+            <button type="button" class="tm-modal-close" onclick="closeRefundModal()">&times;</button>
+        </div>
+        <form asp-controller="Passenger" asp-action="RefundPayment" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="refundPaymentId" name="paymentId" value="" />
+            <div class="tm-modal-body">
+                <div class="tm-form-group">
+                    <label for="refundReason">Reason for refund</label>
+                    <textarea id="refundReason" name="refundReason" rows="4" required
+                              placeholder="Please explain why you need a refund..."></textarea>
+                </div>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-top: 8px;">
+                    Your refund request will be reviewed by an admin. You will be notified once a decision is made.
+                </p>
+            </div>
+            <div class="tm-modal-footer">
+                <button type="button" class="tm-btn tm-btn-dark" onclick="closeRefundModal()">Cancel</button>
+                <button type="submit" class="tm-btn tm-btn-primary">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRefundModal(paymentId) {
+        document.getElementById('refundPaymentId').value = paymentId;
+        document.getElementById('refundModal').style.display = 'flex';
+    }
+
+    function closeRefundModal() {
+        document.getElementById('refundModal').style.display = 'none';
+        document.getElementById('refundReason').value = '';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('refundModal');
+        if (event.target == modal) {
+            closeRefundModal();
+        }
+    }
+</script>
+
+<style>
+    .tm-modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tm-modal-content {
+        background-color: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .tm-modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tm-modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .tm-modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #6b7280;
+        line-height: 1;
+    }
+
+    .tm-modal-close:hover {
+        color: #111827;
+    }
+
+    .tm-modal-body {
+        padding: 24px;
+    }
+
+    .tm-modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .tm-form-group {
+        margin-bottom: 16px;
+    }
+
+    .tm-form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .tm-form-group textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+    }
+
+    .tm-form-group textarea:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+</style>
+
+<div class="tm-dashboard">
+    <div class="tm-dashboard-header">
+        <div>
+            <span class="tm-dashboard-eyebrow">PASSENGER PORTAL</span>
+            <h1>Payment History</h1>
+            <p>View all your payment transactions.</p>
+        </div>
+
+        <a asp-controller="Passenger"
+           asp-action="Dashboard"
+           class="tm-btn tm-btn-primary">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <section class="tm-dashboard-stats" aria-label="Payment statistics">
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon">৳</div>
+            <p>Total spent</p>
+            <h2>৳@Model.TotalSpent.ToString("N2")</h2>
+            <span>Completed payments only</span>
+        </article>
+
+        <article class="tm-stat-card">
+            <div class="tm-stat-icon tm-stat-icon-teal">📋</div>
+            <p>Total transactions</p>
+            <h2>@Model.Payments.Count</h2>
+            <span>All payment records</span>
+        </article>
+    </section>
+
+    <section class="tm-dashboard-panel">
+        <div class="tm-panel-header">
+            <div>
+                <h2>Payment Records</h2>
+                <p>Your complete payment history.</p>
+            </div>
+
+            <span class="tm-record-count">
+                @Model.Payments.Count records
+            </span>
+        </div>
+
+        @if (Model.Payments.Count == 0)
+        {
+            <div class="tm-dashboard-empty">
+                <div class="tm-empty-icon">৳</div>
+                <h3>No payment records yet</h3>
+                <p>
+                    You haven't completed any rides yet. Your payment history
+                    will appear here once you complete your first ride.
+                </p>
+
+                <a asp-controller="Passenger"
+                   asp-action="Book"
+                   class="tm-btn tm-btn-primary">
+                    Book a ride
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="tm-rides-table-wrapper">
+                <table class="tm-rides-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction</th>
+                            <th>Ride</th>
+                            <th>Route</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var payment in Model.Payments)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>#@payment.Id</strong>
+                                    <span class="tm-table-subtext">
+                                        @payment.TransactionId
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <strong>#@payment.RideId</strong>
+                                </td>
+
+                                <td>
+                                    <div class="tm-table-route">
+                                        <span>@payment.PickupZone</span>
+                                        <span class="tm-route-arrow">→</span>
+                                        <span>@payment.DestinationZone</span>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <strong>৳@payment.Amount.ToString("N2")</strong>
+                                </td>
+
+                                <td>
+                                    @payment.Method
+                                </td>
+
+                                <td>
+                                    <span class="tm-status tm-status-@payment.Status.ToString().ToLowerInvariant()">
+                                        @payment.Status
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @if (payment.Status == PaymentStatus.Refunded && payment.RefundedAt.HasValue)
+                                    {
+                                        <span class="tm-date">
+                                            @payment.RefundedAt.Value.ToLocalTime().ToString("dd MMM yyyy")
+                                        </span>
+                                        <span class="tm-table-subtext">
+                                            Refunded @payment.RefundedAt.Value.ToLocalTime().ToString("hh:mm tt")
+                                        </span>
+                                    }
+                                    else if (payment.Status == PaymentStatus.RefundRejected)
+                                    {
+                                        <span class="tm-date">
+                                            @payment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                        </span>
+                                        <span class="tm-table-subtext">
+                                            Request rejected
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-date">
+                                            @payment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                        </span>
+                                        <span class="tm-table-subtext">
+                                            @payment.CreatedAt.ToLocalTime().ToString("hh:mm tt")
+                                        </span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (payment.Status == PaymentStatus.Completed)
+                                    {
+                                        <button type="button"
+                                                class="tm-btn tm-btn-small tm-btn-refund"
+                                                onclick="openRefundModal(@payment.Id)">
+                                            Refund
+                                        </button>
+                                    }
+                                    else if (payment.Status == PaymentStatus.RefundRequested)
+                                    {
+                                        <span class="tm-table-subtext">Pending review</span>
+                                    }
+                                    else if (payment.Status == PaymentStatus.Refunded)
+                                    {
+                                        <span class="tm-table-subtext">Approved</span>
+                                    }
+                                    else if (payment.Status == PaymentStatus.RefundRejected)
+                                    {
+                                        <span class="tm-table-subtext">Rejected</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-table-subtext">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>

@@ -266,6 +266,59 @@ namespace TeslaMAMA.Migrations
                     b.ToTable("DriverOffers");
                 });
 
+            modelBuilder.Entity("TeslaMAMA.Models.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10, 2)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RideRequestId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RideRequestId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Payments", t =>
+                        {
+                            t.HasCheckConstraint("CK_Payment_Amount", "\"Amount\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("TeslaMAMA.Models.Pool", b =>
                 {
                     b.Property<int>("Id")
@@ -525,6 +578,17 @@ namespace TeslaMAMA.Migrations
                     b.Navigation("RideRequest");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("TeslaMAMA.Models.Payment", b =>
+                {
+                    b.HasOne("TeslaMAMA.Models.RideRequest", "RideRequest")
+                        .WithMany()
+                        .HasForeignKey("RideRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RideRequest");
                 });
 
             modelBuilder.Entity("TeslaMAMA.Models.Pool", b =>

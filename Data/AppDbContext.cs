@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RideStatusHistory> RideStatusHistory => Set<RideStatusHistory>();
     public DbSet<PoolDecline> PoolDeclines => Set<PoolDecline>();
     public DbSet<DriverOffer> DriverOffers => Set<DriverOffer>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -161,6 +162,38 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(o => o.VehicleId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Payment>(entity =>
+        {
+            entity.Property(p => p.Method)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.Property(p => p.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.Property(p => p.TransactionId)
+                .HasMaxLength(100);
+
+            entity.Property(p => p.Notes)
+                .HasMaxLength(500);
+
+            entity.HasIndex(p => p.RideRequestId);
+            entity.HasIndex(p => p.Status);
+
+            entity.HasOne(p => p.RideRequest)
+                .WithMany()
+                .HasForeignKey(p => p.RideRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Payment_Amount",
+                    "\"Amount\" >= 0");
+            });
         });
     }
 }
