@@ -1641,6 +1641,36 @@ main:has(.tm-dashboard) {
     color: #666;
 }
 
+.tm-status-pending {
+    background: #fff5dd;
+    color: #956300;
+}
+
+.tm-status-completed {
+    background: #dff5e8;
+    color: #167348;
+}
+
+.tm-status-failed {
+    background: #ffebeb;
+    color: #b42318;
+}
+
+.tm-status-refunded {
+    background: #e8f0fb;
+    color: #2b5a9c;
+}
+
+.tm-status-refundrequested {
+    background: #fff4e5;
+    color: #b45309;
+}
+
+.tm-status-refundrejected {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
 /* ---- Empty state ---- */
 
 .tm-dashboard-empty {
@@ -2001,6 +2031,16 @@ div[role="alert"].text-danger.validation-summary-valid {
     min-height: 38px;
     padding: 8px 14px;
     font-size: 0.86rem;
+}
+
+.tm-btn-refund {
+    background: #ffebeb;
+    color: #b42318;
+    border: 1px solid #b42318;
+}
+
+.tm-btn-refund:hover {
+    background: #ffd6d6;
 }
 
 .tm-btn-dark {
@@ -2529,26 +2569,46 @@ div[role="alert"].text-danger ul {
         width: 100%;
     }
 }
+
 /* =========================================================
-   Passenger dashboard: "Book a ride" button row
+   Passenger dashboard: Booking + Payment History buttons
    ========================================================= */
 
 .tm-dashboard-booking-action {
-    display: flex; /* removes the hidden line-height gap under the button */
-    margin: -12px 0 28px; /* top: pulls it up toward the header | bottom: space before the stat cards */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin: -12px 0 28px;
 }
-f
+
     .tm-dashboard-booking-action .tm-btn {
         min-height: 50px;
         padding: 12px 32px;
     }
 
+    /* Payment History: complementary mint-green style */
+    .tm-dashboard-booking-action .tm-btn-payment {
+        border: 1px solid #b9dfce;
+        background: var(--tm-mint-100);
+        color: var(--tm-forest-800);
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+        .tm-dashboard-booking-action .tm-btn-payment:hover {
+            border-color: var(--tm-green);
+            background: var(--tm-mint-200);
+            color: var(--tm-forest-950);
+            transform: translateY(-1px);
+        }
+
 @media (max-width: 760px) {
     .tm-dashboard-booking-action {
         margin-top: 0;
+        gap: 12px;
     }
 
         .tm-dashboard-booking-action .tm-btn {
-            width: 100%; /* full-width on phones, like the header button */
+            width: 100%;
         }
 }
