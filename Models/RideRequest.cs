@@ -26,6 +26,8 @@ public class RideRequest
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public int OfferAttempts { get; set; } = 0;
+
     public ICollection<RideStatusHistory> StatusHistory { get; set; }
         = new List<RideStatusHistory>();
 
