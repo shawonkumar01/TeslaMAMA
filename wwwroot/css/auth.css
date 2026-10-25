@@ -32,13 +32,13 @@
     display: grid;
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     width: 100%;
-    max-width: 1120px;
-    min-height: 690px;
+    max-width: 1000px;
+    min-height: 600px;
     overflow: hidden;
     background: var(--auth-paper);
     border: 1px solid rgba(23, 44, 43, 0.06);
-    border-radius: 24px;
-    box-shadow: 0 28px 90px rgba(27, 48, 42, 0.11);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(27, 48, 42, 0.10);
 }
 
 .auth-intro {
@@ -46,7 +46,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 42px;
+    padding: 36px;
     overflow: hidden;
     color: #f5f8f4;
     background: radial-gradient(ellipse at 15% 90%, rgba(99, 170, 137, .24), transparent 45%), linear-gradient(145deg, #203b36 0%, #142925 58%, #10221f 100%);
@@ -93,8 +93,8 @@
 .intro-content {
     position: relative;
     z-index: 1;
-    max-width: 410px;
-    margin: 60px 0;
+    max-width: 380px;
+    margin: 50px 0;
 }
 
 .eyebrow {
@@ -111,26 +111,26 @@
 }
 
 .intro-content h1 {
-    margin: 0 0 22px;
-    font-size: clamp(36px, 4vw, 51px);
+    margin: 0 0 18px;
+    font-size: clamp(32px, 3.5vw, 44px);
     font-weight: 650;
     line-height: 1.13;
-    letter-spacing: -2px;
+    letter-spacing: -1.5px;
 }
 
 .intro-content > p {
-    max-width: 360px;
-    margin-bottom: 38px;
+    max-width: 340px;
+    margin-bottom: 28px;
     color: #c0cfca;
-    font-size: 15px;
-    line-height: 1.85;
+    font-size: 14px;
+    line-height: 1.7;
 }
 
 .intro-feature {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-top: 23px;
+    gap: 12px;
+    margin-top: 18px;
 }
 
 .feature-icon {
@@ -173,12 +173,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 52px 48px;
+    padding: 48px 52px;
 }
 
 .auth-form-inner {
     width: 100%;
-    max-width: 410px;
+    max-width: 400px;
 }
 
 .mobile-brand {
@@ -188,26 +188,26 @@
 }
 
 .form-heading {
-    margin-bottom: 30px;
+    margin-bottom: 28px;
 }
 
     .form-heading .eyebrow {
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
 
     .form-heading h2 {
-        margin: 0 0 10px;
+        margin: 0 0 8px;
         color: var(--auth-ink);
-        font-size: 31px;
+        font-size: 30px;
         font-weight: 720;
-        letter-spacing: -1.1px;
+        letter-spacing: -1px;
     }
 
     .form-heading p {
         margin: 0;
         color: var(--auth-muted);
         font-size: 14px;
-        line-height: 1.7;
+        line-height: 1.6;
     }
 
 .field-row {
@@ -218,14 +218,14 @@
 
 .field-group {
     min-width: 0;
-    margin-bottom: 19px;
+    margin-bottom: 18px;
 }
 
     .field-group label {
         display: block;
         margin-bottom: 8px;
         color: #354742;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 700;
     }
 
@@ -233,14 +233,14 @@
     display: block;
     width: 100%;
     min-height: 48px;
-    padding: 12px 13px;
+    padding: 12px 14px;
     border: 1px solid var(--auth-border);
     border-radius: 10px;
     outline: none;
     background: #fbfcfa;
     color: var(--auth-ink);
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
@@ -250,12 +250,13 @@
 
     .auth-input:hover {
         border-color: #c4d2ca;
+        background: #fff;
     }
 
     .auth-input:focus {
         border-color: var(--auth-green);
         background: #fff;
-        box-shadow: 0 0 0 3px rgba(23, 107, 85, 0.10);
+        box-shadow: 0 0 0 4px rgba(23, 107, 85, 0.12);
     }
 
 .auth-select {
@@ -284,14 +285,14 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 51px;
-    margin-top: 4px;
+    min-height: 50px;
+    margin-top: 6px;
     padding: 0 18px;
     border: 0;
     border-radius: 10px;
     background: var(--auth-green);
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750;
     cursor: pointer;
     transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
@@ -305,7 +306,11 @@
     .auth-submit:hover {
         transform: translateY(-1px);
         background: #125641;
-        box-shadow: 0 8px 20px rgba(23, 107, 85, 0.18);
+        box-shadow: 0 8px 20px rgba(23, 107, 85, 0.20);
+    }
+
+    .auth-submit:active {
+        transform: translateY(0);
     }
 
 .auth-terms {
@@ -346,11 +351,11 @@
     }
 
     .auth-intro {
-        padding: 32px;
+        padding: 28px;
     }
 
     .auth-form-panel {
-        padding: 38px 28px;
+        padding: 36px 28px;
     }
 
     .field-row {
@@ -615,7 +620,7 @@
         height: 100vh;
         height: 100dvh;
         min-height: 0;
-        padding: 10px;
+        padding: 12px;
         overflow: hidden;
         box-sizing: border-box;
     }
@@ -628,51 +633,51 @@
     }
 
     .auth-intro {
-        padding: 24px 28px;
+        padding: 28px 32px;
     }
 
     .intro-content {
-        margin: 16px 0;
+        margin: 40px 0;
     }
 
         .intro-content h1 {
-            font-size: clamp(30px, 2.8vw, 40px);
+            font-size: clamp(30px, 2.8vw, 38px);
             line-height: 1.12;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
         .intro-content > p {
             font-size: 13px;
             line-height: 1.55;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
     .intro-feature {
-        margin-top: 12px;
+        margin-top: 14px;
         gap: 12px;
     }
 
         .intro-feature .feature-icon {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
         }
 
     .auth-form-panel {
-        padding: 14px 24px;
+        padding: 20px 32px;
         min-height: 0;
     }
 
     .auth-form-inner {
         width: 100%;
-        max-width: 370px;
+        max-width: 380px;
     }
 
     .form-heading {
-        margin-bottom: 16px;
+        margin-bottom: 22px;
     }
 
         .form-heading .eyebrow {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .form-heading h2 {
@@ -681,29 +686,29 @@
         }
 
         .form-heading p {
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1.5;
         }
 
     .field-row {
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 12px;
     }
 
     .field-group {
-        margin-bottom: 9px;
+        margin-bottom: 14px;
     }
 
         .field-group label {
-            margin-bottom: 4px;
-            font-size: 11px;
+            margin-bottom: 6px;
+            font-size: 12px;
         }
 
     .auth-input {
-        min-height: 36px;
-        padding: 7px 10px;
-        font-size: 12px;
-        border-radius: 7px;
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: 9px;
         box-sizing: border-box;
     }
 
@@ -824,17 +829,17 @@
     .password-wrapper .password-toggle {
         position: absolute !important;
         top: 50% !important;
-        right: 12px !important;
+        right: 14px !important;
         left: auto !important;
         bottom: auto !important;
         transform: translateY(-50%) !important;
         display: flex !important;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         margin: 0;
-        padding: 3px;
+        padding: 4px;
         border: none !important;
         outline: none;
         border-radius: 50%;
@@ -856,8 +861,8 @@
 
         .password-wrapper .password-toggle svg {
             display: block;
-            width: 22px;
-            height: 22px;
+            width: 24px;
+            height: 24px;
             margin: 0;
             fill: none;
             stroke: currentColor;
