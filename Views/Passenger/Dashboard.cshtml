@@ -21,13 +21,21 @@
         </a>
     </div>
 
+    
     <div class="tm-dashboard-booking-action">
         <a asp-controller="Passenger"
            asp-action="Book"
            class="tm-btn tm-btn-primary">
             Book a ride
         </a>
+
+        <a asp-controller="Passenger"
+           asp-action="PaymentHistory"
+           class="tm-btn tm-btn-payment">
+            Payment History
+        </a>
     </div>
+
 
     @if (TempData["BookingSuccess"] is string bookingSuccess)
     {

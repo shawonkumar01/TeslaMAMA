@@ -36,6 +36,16 @@ public enum PaymentMethod
     MobileBanking
 }
 
+public enum PaymentStatus
+{
+    Pending,
+    Completed,
+    Failed,
+    RefundRequested,
+    Refunded,
+    RefundRejected
+}
+
 public enum DriverOfferStatus
 {
     Pending,
