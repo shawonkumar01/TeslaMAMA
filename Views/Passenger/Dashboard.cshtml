@@ -13,26 +13,10 @@
             <p>Manage your ride activity and keep track of your journeys.</p>
         </div>
 
-        <a asp-controller="Home"
-           asp-action="Index"
-           asp-fragment="how-it-works"
-           class="tm-btn tm-btn-primary">
-            Explore ride pooling
-        </a>
-    </div>
-
-    
-    <div class="tm-dashboard-booking-action">
         <a asp-controller="Passenger"
            asp-action="Book"
            class="tm-btn tm-btn-primary">
             Book a ride
-        </a>
-
-        <a asp-controller="Passenger"
-           asp-action="PaymentHistory"
-           class="tm-btn tm-btn-payment">
-            Payment History
         </a>
     </div>
 
@@ -53,28 +37,47 @@
 
     <section class="tm-dashboard-stats" aria-label="Ride statistics">
         <article class="tm-stat-card">
-            <div class="tm-stat-icon">↗</div>
+            <div class="tm-stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="M12 5l7 7-7 7"></path>
+                </svg>
+            </div>
             <p>Total rides</p>
             <h2>@Model.TotalRides</h2>
             <span>All your ride requests</span>
         </article>
 
         <article class="tm-stat-card">
-            <div class="tm-stat-icon tm-stat-icon-teal">◷</div>
+            <div class="tm-stat-icon tm-stat-icon-teal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
             <p>Active rides</p>
             <h2>@Model.ActiveRides</h2>
             <span>Requests in progress</span>
         </article>
 
         <article class="tm-stat-card">
-            <div class="tm-stat-icon tm-stat-icon-blue">✓</div>
+            <div class="tm-stat-icon tm-stat-icon-blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
             <p>Completed rides</p>
             <h2>@Model.CompletedRides</h2>
             <span>Successfully completed</span>
         </article>
 
         <article class="tm-stat-card">
-            <div class="tm-stat-icon tm-stat-icon-gold">৳</div>
+            <div class="tm-stat-icon tm-stat-icon-gold">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
             <p>Total spent</p>
             <h2>৳@Model.TotalSpent.ToString("N2")</h2>
             <span>Completed rides only</span>
@@ -147,36 +150,20 @@
 
                                     @if (ride.PoolId.HasValue)
                                     {
-                                        <span class="tm-table-subtext">
-                                            @(ride.IsSharedPool ? "Shared Pool" : "Private Pool") · #@ride.PoolId
-                                        </span>
-
-                                        @if (ride.VehicleCapacity.HasValue)
-                                        {
-                                            <span class="tm-table-subtext">
-                                                Seats: @ride.PoolSeatsUsed/@ride.VehicleCapacity
-                                            </span>
-                                        }
-
-                                        @if (ride.OtherPassengersInPool.HasValue && ride.OtherPassengersInPool > 0)
-                                        {
-                                            <span class="tm-table-subtext">
-                                                +@ride.OtherPassengersInPool other @(ride.OtherPassengersInPool == 1 ? "passenger" : "passengers")
-                                            </span>
-                                        }
-
-                                        @if (ride.PoolStatus.HasValue)
-                                        {
-                                            <span class="tm-table-subtext">
-                                                Pool: @ride.PoolStatus
-                                            </span>
-                                        }
-
+                                        <div class="tm-chip-row">
+                                            <span class="tm-chip">@(ride.IsSharedPool ? "Shared" : "Private") · #@ride.PoolId</span>
+                                            @if (ride.VehicleCapacity.HasValue)
+                                            {
+                                                <span class="tm-chip">@ride.PoolSeatsUsed/@ride.VehicleCapacity seats</span>
+                                            }
+                                            @if (ride.OtherPassengersInPool is > 0)
+                                            {
+                                                <span class="tm-chip">+@ride.OtherPassengersInPool riding</span>
+                                            }
+                                        </div>
                                         @if (!string.IsNullOrWhiteSpace(ride.VehicleName))
                                         {
-                                            <span class="tm-table-subtext">
-                                                Vehicle: @ride.VehicleName
-                                            </span>
+                                            <span class="tm-table-subtext">@ride.VehicleName</span>
                                         }
                                     }
                                     else
