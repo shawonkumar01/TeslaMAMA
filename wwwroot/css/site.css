@@ -288,6 +288,46 @@ textarea {
     font-weight: 600;
 }
 
+.tm-user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--tm-forest-800);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.tm-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--tm-mint-300);
+    color: var(--tm-forest-900);
+    font-weight: 800;
+}
+
+.tm-nav-link {
+    position: relative;
+}
+
+.tm-nav-link.is-active {
+    color: var(--tm-green);
+}
+
+.tm-nav-link.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--tm-green);
+}
+
 .tm-logout-form {
     display: inline-flex;
     margin: 0;
@@ -970,12 +1010,16 @@ textarea {
     }
 
     .tm-nav-links {
-        display: flex;
+        display: none;
         flex: 0 0 100%;
         flex-direction: column;
         align-items: stretch;
         gap: 0;
         padding: 6px 0 8px;
+    }
+
+    .tm-nav-links.tm-nav-open {
+        display: flex;
     }
 
         .tm-nav-links > .tm-nav-link {
@@ -1167,7 +1211,7 @@ main:has(.tm-dashboard) {
 .tm-dashboard-header h1 {
     margin: 0 0 10px;
     color: var(--tm-forest-900);
-    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1.15;
@@ -1203,7 +1247,11 @@ main:has(.tm-dashboard) {
 
 .tm-stat-card {
     min-width: 0;
-    padding: 24px;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    column-gap: 16px;
+    align-items: center;
+    padding: 20px 22px;
     border: 1px solid var(--tm-border);
     border-radius: 18px;
     background: var(--tm-white);
@@ -1216,7 +1264,8 @@ main:has(.tm-dashboard) {
     justify-content: center;
     width: 44px;
     height: 44px;
-    margin-bottom: 18px;
+    grid-row: 1 / span 3;
+    margin-bottom: 0;
     border-radius: 12px;
     background: var(--tm-mint-100);
     color: var(--tm-green);
@@ -1247,7 +1296,7 @@ main:has(.tm-dashboard) {
 }
 
 .tm-stat-card h2 {
-    margin: 0 0 7px;
+    margin: 0 0 2px;
     color: var(--tm-forest-900);
     font-size: clamp(1.5rem, 2.5vw, 2rem);
     font-weight: 800;
@@ -1578,6 +1627,23 @@ main:has(.tm-dashboard) {
     gap: 7px;
     min-width: 180px;
     font-weight: 650;
+}
+
+.tm-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.tm-chip {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #edf2ef;
+    color: #4a5f56;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .tm-route-arrow {
@@ -2568,6 +2634,101 @@ div[role="alert"].text-danger ul {
     .tm-booking-panel .tm-btn-primary {
         width: 100%;
     }
+}
+
+/* =========================================================
+   Route map card (booking page)
+   ========================================================= */
+
+.tm-map-card {
+    margin-top: 30px;
+    overflow: hidden;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+}
+
+.tm-map-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-map-card-header h3 {
+    margin: 0 0 2px;
+    color: var(--tm-forest-900);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.tm-map-card-header p {
+    margin: 0;
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+}
+
+.tm-map-distance {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--tm-mint-100);
+    color: var(--tm-green);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.tm-map-distance[hidden] { display: none; }
+
+.tm-map-wrap { position: relative; }
+
+.tm-map {
+    position: relative;
+    z-index: 0;                 /* keeps Leaflet's layers below your sticky navbar */
+    width: 100%;
+    height: 340px;              /* Leaflet needs an explicit height or the map is invisible */
+    background: #e9efec;
+}
+
+.tm-map-empty {
+    position: absolute;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(241, 245, 242, 0.85);
+    backdrop-filter: blur(2px);
+    color: var(--tm-muted);
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-align: center;
+    transition: opacity 0.25s ease;
+}
+
+.tm-map-empty.is-hidden { opacity: 0; pointer-events: none; }
+
+.tm-map-label {
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--tm-forest-900);
+    color: var(--tm-white);
+    font-size: 0.78rem;
+    font-weight: 700;
+    box-shadow: 0 6px 16px rgba(10, 31, 26, 0.25);
+}
+
+.tm-map-label.leaflet-tooltip-top::before { border-top-color: var(--tm-forest-900); }
+
+@media (max-width: 700px) {
+    .tm-map { height: 260px; }
+    .tm-map-card-header { padding: 16px; }
 }
 
 /* =========================================================

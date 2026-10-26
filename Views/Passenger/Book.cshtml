@@ -6,6 +6,10 @@
     ViewData["Title"] = "Book a Ride";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
 <section class="tm-dashboard">
     <div class="tm-dashboard-header">
         <div>
@@ -13,26 +17,15 @@
             <h1>Book your ride</h1>
             <p>Choose your route and request a ride with TeslaMAMA.</p>
         </div>
-
-        <a asp-controller="Passenger"
-           asp-action="Dashboard"
-           class="tm-btn tm-btn-secondary">
-            Back to dashboard
-        </a>
     </div>
 
     <div class="tm-dashboard-panel tm-booking-panel">
-        <form asp-controller="Passenger"
-              asp-action="Book"
-              method="post"
-              id="booking-form">
-
+        <form asp-controller="Passenger" asp-action="Book" method="post" id="booking-form">
             @Html.AntiForgeryToken()
 
-            <div asp-validation-summary="ModelOnly"
-                 class="text-danger"
-                 role="alert"></div>
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
+            <!-- 1. Fields -->
             <div class="tm-booking-grid">
                 <div class="tm-form-field">
                     <label asp-for="PickupZone">Pickup zone</label>
@@ -43,41 +36,31 @@
                             <option value="@zone">@zone</option>
                         }
                     </select>
-                    <span asp-validation-for="PickupZone"
-                          class="text-danger"></span>
+                    <span asp-validation-for="PickupZone" class="text-danger"></span>
                     <div id="driver-availability-warning" class="tm-availability-warning" style="display: none;">
                         ⚠️ No drivers are currently online in this zone. Please try a different pickup zone or wait for some time.
                     </div>
                 </div>
 
                 <div class="tm-form-field">
-                    <label asp-for="DestinationZone">
-                        Destination zone
-                    </label>
-                    <select asp-for="DestinationZone"
-                            id="destination-zone">
+                    <label asp-for="DestinationZone">Destination zone</label>
+                    <select asp-for="DestinationZone" id="destination-zone">
                         <option value="">Choose destination</option>
                         @foreach (var zone in Model.SupportedZones)
                         {
                             <option value="@zone">@zone</option>
                         }
                     </select>
-                    <span asp-validation-for="DestinationZone"
-                          class="text-danger"></span>
+                    <span asp-validation-for="DestinationZone" class="text-danger"></span>
                 </div>
 
                 <div class="tm-form-field">
                     <label asp-for="RideType">Ride type</label>
                     <select asp-for="RideType" id="ride-type">
-                        <option value="@RideType.SharedPool">
-                            Shared Pool
-                        </option>
-                        <option value="@RideType.Private">
-                            Private Ride
-                        </option>
+                        <option value="@RideType.SharedPool">Shared Pool</option>
+                        <option value="@RideType.Private">Private Ride</option>
                     </select>
-                    <span asp-validation-for="RideType"
-                          class="text-danger"></span>
+                    <span asp-validation-for="RideType" class="text-danger"></span>
                 </div>
 
                 <div class="tm-form-field">
@@ -85,29 +68,47 @@
                     <select asp-for="Seats" id="seat-count">
                         @for (var count = 1; count <= 5; count++)
                         {
-                            <option value="@count">
-                                @count @(count == 1 ? "seat" : "seats")
-                            </option>
+                            <option value="@count">@count @(count == 1 ? "seat" : "seats")</option>
                         }
                     </select>
-                    <span asp-validation-for="Seats"
-                          class="text-danger"></span>
+                    <span asp-validation-for="Seats" class="text-danger"></span>
                 </div>
 
-                <div class="tm-form-field">
+                <div class="tm-form-field tm-field-wide">
                     <label asp-for="PaymentMethod">Payment method</label>
                     <select asp-for="PaymentMethod">
                         <option value="@PaymentMethod.Cash">Cash</option>
                         <option value="@PaymentMethod.Card">Card</option>
-                        <option value="@PaymentMethod.MobileBanking">
-                            Mobile banking
-                        </option>
+                        <option value="@PaymentMethod.MobileBanking">Mobile banking</option>
                     </select>
-                    <span asp-validation-for="PaymentMethod"
-                          class="text-danger"></span>
+                    <span asp-validation-for="PaymentMethod" class="text-danger"></span>
                 </div>
             </div>
 
+            <!-- 2. Route map -->
+            <div class="tm-map-card">
+                <div class="tm-map-card-header">
+                    <div>
+                        <h3>Route preview</h3>
+                        <p id="map-subtitle">Road route between your pickup and destination</p>
+                    </div>
+                    <span class="tm-map-distance" id="map-distance" hidden></span>
+                </div>
+
+                <div class="tm-map-wrap">
+                    <div id="booking-map" class="tm-map"></div>
+                    <div id="map-empty" class="tm-map-empty">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
+                            <circle cx="12" cy="10" r="2.5" />
+                        </svg>
+                        Choose a pickup and destination to preview your route
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Fare -->
             <div class="tm-fare-preview" aria-live="polite">
                 <div>
                     <p class="tm-eyebrow">ESTIMATED FARE</p>
@@ -119,28 +120,96 @@
                 </div>
             </div>
 
-            <button type="submit" class="tm-btn tm-btn-primary">
-                Request ride
-            </button>
+            <!-- 4. Action -->
+            <button type="submit" class="tm-btn tm-btn-primary">Request ride</button>
         </form>
     </div>
 </section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/tm-map.js" asp-append-version="true"></script>
 
     <script>
-        (() => {
+        document.addEventListener('DOMContentLoaded', function() {
             const pickup = document.getElementById("pickup-zone");
-            const destination =
-                document.getElementById("destination-zone");
+            const destination = document.getElementById("destination-zone");
             const seats = document.getElementById("seat-count");
             const rideType = document.getElementById("ride-type");
             const amount = document.getElementById("fare-amount");
             const details = document.getElementById("fare-details");
             const warning = document.getElementById("driver-availability-warning");
 
+            const mapEmpty = document.getElementById("map-empty");
+            const mapDistance = document.getElementById("map-distance");
+            const mapSubtitle = document.getElementById("map-subtitle");
+            const zoneCoordinates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                Model.ZoneCoordinates,
+                new System.Text.Json.JsonSerializerOptions {
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                }));
+
+            console.log("zoneCoordinates loaded:", zoneCoordinates);
+
+            let map = null;
             let currentRequest = null;
+
+            function initMap() {
+                map = TeslaMAMA.Map.init("booking-map");
+            }
+
+            function pointOf(zone) {
+                if (!zone) return null;
+                const key = Object.keys(zoneCoordinates)
+                    .find(k => k.toLowerCase() === zone.toLowerCase());
+                const p = key ? zoneCoordinates[key] : null;
+                if (!p) return null;
+
+                const lat = Number(p.lat ?? p.Lat);
+                const lng = Number(p.lng ?? p.Lng);
+                return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+            }
+
+            async function updateMap() {
+                if (!map) return;
+
+                const from = pointOf(pickup.value);
+                const to   = pointOf(destination.value);
+
+                if (!pickup.value || !destination.value || pickup.value === destination.value) {
+                    TeslaMAMA.Map.clearRoute(map);
+                    mapEmpty.classList.remove("is-hidden");
+                    mapDistance.hidden = true;
+                    mapSubtitle.textContent = "Road route between your pickup and destination";
+                    return;
+                }
+
+                if (!from || !to) {
+                    console.warn("Missing coordinates for:", pickup.value, destination.value);
+                    return;
+                }
+
+                mapEmpty.classList.add("is-hidden");
+                mapDistance.hidden = false;
+                mapDistance.textContent = "Finding route…";
+
+                const result = await TeslaMAMA.Map.setRoute(map,
+                    { name: pickup.value,      lat: from.lat, lng: from.lng },
+                    { name: destination.value, lat: to.lat,   lng: to.lng });
+
+                if (!result) return;                                   // a newer selection replaced this one
+
+                if (result.isRoad) {
+                    mapDistance.textContent =
+                        result.distanceKm.toFixed(1) + " km · " + Math.max(1, Math.round(result.durationMin)) + " min";
+                    mapSubtitle.textContent = "Road route · drive time excludes traffic";
+                } else {
+                    const km = calculateDistance(from.lat, from.lng, to.lat, to.lng);
+                    mapDistance.textContent = "≈ " + km.toFixed(1) + " km";
+                    mapSubtitle.textContent = "Straight-line estimate (road route unavailable)";
+                }
+            }
 
             async function checkDriverAvailability() {
                 const zone = pickup.value;
@@ -257,15 +326,38 @@
                 }
             }
 
+            // Haversine formula for distance calculation
+            function calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371; // Earth's radius in km
+                const dLat = toRadians(lat2 - lat1);
+                const dLon = toRadians(lon2 - lon1);
+
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+                const c = 2 * Math.asin(Math.sqrt(a));
+                return R * c;
+            }
+
+            function toRadians(angle) {
+                return angle * Math.PI / 180.0;
+            }
+
+            initMap();
+            updateMap();
+
             pickup.addEventListener("change", () => {
                 checkDriverAvailability();
                 updateFare();
+                updateMap();
             });
-            destination.addEventListener("change", updateFare);
+            destination.addEventListener("change", () => {
+                updateFare();
+                updateMap();
+            });
             seats.addEventListener("change", updateFare);
             rideType.addEventListener("change", updateFare);
-
-            updateFare();
-        })();
+        });
     </script>
 }

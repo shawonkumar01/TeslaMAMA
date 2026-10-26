@@ -121,7 +121,10 @@ public class PassengerController : Controller
         if (passenger.Role != UserRole.Passenger)
             return Forbid();
 
-        var model = new PassengerBookingViewModel();
+        var model = new PassengerBookingViewModel
+        {
+            ZoneCoordinates = ZoneCoordinates.GetCoordinates()
+        };
         PopulateZones(model);
 
         return View(model);
@@ -187,7 +190,10 @@ public class PassengerController : Controller
         }
 
         if (!ModelState.IsValid)
+        {
+            model.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
             return View(model);
+        }
 
         if (!_fareCalculator.TryCalculateFare(
                 model.PickupZone,
@@ -200,6 +206,7 @@ public class PassengerController : Controller
                 string.Empty,
                 "This route is not currently supported. Please select another route.");
 
+            model.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
             return View(model);
         }
 
@@ -218,6 +225,7 @@ public class PassengerController : Controller
                 string.Empty,
                 $"No drivers are currently online in {model.PickupZone}. Please try a different pickup zone or try again later.");
 
+            model.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
             return View(model);
         }
 
@@ -243,6 +251,7 @@ public class PassengerController : Controller
                 string.Empty,
                 "You already have an active ride. Please cancel or complete your current ride before booking a new one.");
 
+            model.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
             return View(model);
         }
 
