@@ -17,6 +17,8 @@
     <link rel="stylesheet"
           href="~/TeslaMAMA.styles.css"
           asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
@@ -44,43 +46,35 @@
                 </button>
 
                 <div class="tm-nav-links" id="tm-nav-links">
-                    <a class="tm-nav-link"
-                       asp-controller="Home"
-                       asp-action="Index">Home</a>
-
-                    <a class="tm-nav-link"
-                       asp-controller="Home"
-                       asp-action="Index"
-                       asp-fragment="how-it-works">How it works</a>
-
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        var rawName = User.Identity?.Name ?? "there";
+                        var shortName = rawName.Contains('@') ? rawName.Split('@')[0] : rawName.Split(' ')[0];
+                        var initial = shortName.Length > 0 ? char.ToUpper(shortName[0]).ToString() : "?";
+
                         @if (User.IsInRole("Passenger"))
                         {
-                  
-                                <a class="tm-nav-link" asp-controller="Passenger" asp-action="Dashboard">Dashboard</a>
+                            var action = ViewContext.RouteData.Values["action"]?.ToString();
+                            <a class="tm-nav-link @(action == "Dashboard" ? "is-active" : "")"
+                               asp-controller="Passenger" asp-action="Dashboard">Dashboard</a>
 
-                            <a class="tm-nav-link"
-                               asp-controller="Passenger"
-                               asp-action="Book">
-                                Book a ride
-                            </a>
+                            <a class="tm-nav-link @(action == "Book" ? "is-active" : "")"
+                               asp-controller="Passenger" asp-action="Book">Book a ride</a>
 
-
+                            <a class="tm-nav-link @(action == "PaymentHistory" ? "is-active" : "")"
+                               asp-controller="Passenger" asp-action="PaymentHistory">Payments</a>
                         }
 
                         @if (User.IsInRole("Driver"))
                         {
-                            <a class="tm-nav-link"
-                               asp-controller="Driver"
-                               asp-action="Index">
-                                Driver Dashboard
-                            </a>
+                            var action = ViewContext.RouteData.Values["action"]?.ToString();
+                            <a class="tm-nav-link @(action == "Index" ? "is-active" : "")"
+                               asp-controller="Driver" asp-action="Index">Dashboard</a>
                         }
 
                         <div class="tm-nav-auth">
-                            <span class="tm-user-label">
-                                Hi, @(User.Identity?.Name ?? "there")
+                            <span class="tm-user-chip">
+                                <span class="tm-avatar">@initial</span>@shortName
                             </span>
 
                             <form asp-controller="Account"
@@ -91,13 +85,22 @@
 
                                 <button type="submit"
                                         class="tm-btn tm-btn-logout">
-                                    Logout <span aria-hidden="true">↗</span>
+                                    Log out
                                 </button>
                             </form>
                         </div>
                     }
                     else
                     {
+                        <a class="tm-nav-link"
+                           asp-controller="Home"
+                           asp-action="Index">Home</a>
+
+                        <a class="tm-nav-link"
+                           asp-controller="Home"
+                           asp-action="Index"
+                           asp-fragment="how-it-works">How it works</a>
+
                         <div class="tm-nav-auth">
                             <a class="tm-nav-login"
                                asp-controller="Account"
@@ -180,6 +183,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

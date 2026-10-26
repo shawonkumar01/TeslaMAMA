@@ -28,4 +28,7 @@ public class PassengerBookingViewModel
         = Array.Empty<string>();
 
     public decimal? CalculatedFare { get; set; }
+
+    public Dictionary<string, ZonePoint> ZoneCoordinates { get; set; }
+        = new Dictionary<string, ZonePoint>();
 }
