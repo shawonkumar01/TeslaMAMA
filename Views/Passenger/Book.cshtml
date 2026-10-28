@@ -200,12 +200,19 @@
 
                 if (!result) return;                                   // a newer selection replaced this one
 
+                // Use server-provided distance (from RoadDistances) for consistency with fare
+                // OSRM is only used for drawing the road path and drive time
+                const serverDistance = window.lastFareDistance;
+
                 if (result.isRoad) {
+                    const distanceText = serverDistance
+                        ? serverDistance.toFixed(1) + " km"
+                        : result.distanceKm.toFixed(1) + " km";
                     mapDistance.textContent =
-                        result.distanceKm.toFixed(1) + " km · " + Math.max(1, Math.round(result.durationMin)) + " min";
+                        distanceText + " · " + Math.max(1, Math.round(result.durationMin)) + " min";
                     mapSubtitle.textContent = "Road route · drive time excludes traffic";
                 } else {
-                    const km = calculateDistance(from.lat, from.lng, to.lat, to.lng);
+                    const km = serverDistance || calculateDistance(from.lat, from.lng, to.lat, to.lng);
                     mapDistance.textContent = "≈ " + km.toFixed(1) + " km";
                     mapSubtitle.textContent = "Straight-line estimate (road route unavailable)";
                 }
@@ -300,6 +307,11 @@
 
                     const seatText =
                         count === 1 ? " seat" : " seats";
+
+                    // Store the server-provided distance for the map to use
+                    if (result.distanceKm) {
+                        window.lastFareDistance = result.distanceKm;
+                    }
 
                     if (type === "SharedPool") {
                         details.textContent =
