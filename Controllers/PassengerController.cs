@@ -16,17 +16,20 @@ public class PassengerController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFareCalculationService _fareCalculator;
     private readonly IDriverAssignmentService _assignmentService;
+    private readonly RoadDistanceStore _roadDistanceStore;
 
     public PassengerController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IFareCalculationService fareCalculator,
-        IDriverAssignmentService assignmentService)
+        IDriverAssignmentService assignmentService,
+        RoadDistanceStore roadDistanceStore)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _fareCalculator = fareCalculator;
         _assignmentService = assignmentService;
+        _roadDistanceStore = roadDistanceStore;
     }
 
     // GET: /Passenger/Dashboard
@@ -354,6 +357,9 @@ public class PassengerController : Controller
             2,
             MidpointRounding.AwayFromZero);
 
+        // Get the road distance for display consistency
+        var distanceKm = GetDistanceKm(pickupZone, destinationZone);
+
         return Json(new
         {
             totalFare,
@@ -362,13 +368,41 @@ public class PassengerController : Controller
             rideType = rideType.ToString(),
             discountPercent = rideType == RideType.SharedPool
                 ? FixedFareCalculationService.PoolDiscountPercent
-                : 0m
+                : 0m,
+            distanceKm
         });
     }
 
     private void PopulateZones(PassengerBookingViewModel model)
     {
         model.SupportedZones = _fareCalculator.GetSupportedZones();
+    }
+
+    private double GetDistanceKm(string from, string to)
+    {
+        // Try precomputed road distance from database (loaded into memory store)
+        if (_roadDistanceStore.TryGet(from, to, out var km))
+        {
+            return km;
+        }
+
+        // Fallback: straight-line distance scaled up to approximate roads
+        var fromCoord = ZoneCoordinates.GetCoordinate(from);
+        var toCoord = ZoneCoordinates.GetCoordinate(to);
+
+        if (fromCoord == null || toCoord == null)
+        {
+            return 0;
+        }
+
+        var straightLineKm = ZoneCoordinates.CalculateDistance(
+            fromCoord.Lat,
+            fromCoord.Lng,
+            toCoord.Lat,
+            toCoord.Lng);
+
+        // Roads are typically 1.2-1.5x longer than straight line
+        return straightLineKm * 1.3;
     }
 
     // POST: /Passenger/CancelRide
