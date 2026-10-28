@@ -33,4 +33,7 @@ public class RideRequest
 
     public ICollection<PoolDecline> Declines { get; set; }
         = new List<PoolDecline>();
+
+    public ICollection<Payment> Payments { get; set; }
+        = new List<Payment>();
 }
