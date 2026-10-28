@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PoolDecline> PoolDeclines => Set<PoolDecline>();
     public DbSet<DriverOffer> DriverOffers => Set<DriverOffer>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<RoadDistance> RoadDistances => Set<RoadDistance>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -194,6 +195,20 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                     "CK_Payment_Amount",
                     "\"Amount\" >= 0");
             });
+        });
+
+        builder.Entity<RoadDistance>(entity =>
+        {
+            entity.Property(r => r.FromZone)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(r => r.ToZone)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasIndex(r => new { r.FromZone, r.ToZone })
+                .IsUnique();
         });
     }
 }
