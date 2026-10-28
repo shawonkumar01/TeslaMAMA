@@ -474,6 +474,38 @@ namespace TeslaMAMA.Migrations
                     b.ToTable("RideStatusHistory");
                 });
 
+            modelBuilder.Entity("TeslaMAMA.Models.RoadDistance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FromZone")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<double>("Km")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("ToZone")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromZone", "ToZone")
+                        .IsUnique();
+
+                    b.ToTable("RoadDistances");
+                });
+
             modelBuilder.Entity("TeslaMAMA.Models.Vehicle", b =>
                 {
                     b.Property<int>("Id")

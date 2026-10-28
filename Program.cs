@@ -28,6 +28,10 @@ builder.Services.AddScoped<
     TeslaMAMA.Services.DriverAssignmentService>();
 builder.Services.AddHostedService<RideOfferTimeoutService>();
 
+// Road distance caching
+builder.Services.AddSingleton<RoadDistanceStore>();
+builder.Services.AddHostedService<RoadDistanceSeeder>();
+
 var app = builder.Build();
 //await DbSeeder.SeedAsync(app.Services);
 // Ensure required Identity roles exist without creating demo users or vehicles.

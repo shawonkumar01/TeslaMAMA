@@ -1,4 +1,6 @@
 ﻿
+using TeslaMAMA.Models;
+
 namespace TeslaMAMA.Services;
 
 public interface IFareCalculationService
@@ -15,6 +17,13 @@ public interface IFareCalculationService
 
 public sealed class FixedFareCalculationService : IFareCalculationService
 {
+    private readonly RoadDistanceStore _roadDistances;
+
+    public FixedFareCalculationService(RoadDistanceStore roadDistances)
+    {
+        _roadDistances = roadDistances;
+    }
+
     private static readonly string[] Zones =
     {
         "Banani",
@@ -40,79 +49,6 @@ public sealed class FixedFareCalculationService : IFareCalculationService
         {
             ["Banani|Mohakhali"] = 52.80m,
             ["Banani|Gulshan 1"] = 52.16m
-        };
-
-    // These distances are illustrative prototype values, not verified
-    // live road distances. Replace them with validated route distances.
-    private static readonly Dictionary<string, decimal> RouteDistancesKm =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Badda|Banani"] = 4m,
-            ["Banani|Gulshan 1"] = 3m,
-            ["Banani|Gulshan 2"] = 4m,
-            ["Banani|Hatirjheel"] = 6m,
-            ["Banani|Mirpur"] = 10m,
-            ["Banani|Mohanagar"] = 8m,
-            ["Banani|Mohakhali"] = 3m,
-            ["Banani|Notun Bazar"] = 6m,
-            ["Banani|Rampura"] = 8m,
-            ["Banani|Tejgaon"] = 5m,
-
-            ["Farmgate|Banani"] = 6m,
-            ["Farmgate|Badda"] = 8m,
-            ["Farmgate|Gulshan 1"] = 6m,
-            ["Farmgate|Gulshan 2"] = 7m,
-            ["Farmgate|Hatirjheel"] = 4m,
-            ["Farmgate|Mirpur"] = 8m,
-            ["Farmgate|Mohanagar"] = 5m,
-            ["Farmgate|Mohakhali"] = 4m,
-            ["Farmgate|Notun Bazar"] = 10m,
-            ["Farmgate|Rampura"] = 7m,
-            ["Farmgate|Tejgaon"] = 3m,
-
-            ["Gulshan 1|Gulshan 2"] = 3m,
-            ["Gulshan 1|Hatirjheel"] = 5m,
-            ["Gulshan 1|Mirpur"] = 10m,
-            ["Gulshan 1|Mohanagar"] = 7m,
-            ["Gulshan 1|Mohakhali"] = 3m,
-            ["Gulshan 1|Notun Bazar"] = 5m,
-            ["Gulshan 1|Rampura"] = 6m,
-            ["Gulshan 1|Tejgaon"] = 5m,
-
-            ["Gulshan 2|Hatirjheel"] = 6m,
-            ["Gulshan 2|Mirpur"] = 11m,
-            ["Gulshan 2|Mohanagar"] = 8m,
-            ["Gulshan 2|Mohakhali"] = 4m,
-            ["Gulshan 2|Notun Bazar"] = 4m,
-            ["Gulshan 2|Rampura"] = 7m,
-            ["Gulshan 2|Tejgaon"] = 6m,
-
-            ["Hatirjheel|Mirpur"] = 10m,
-            ["Hatirjheel|Mohanagar"] = 5m,
-            ["Hatirjheel|Mohakhali"] = 6m,
-            ["Hatirjheel|Notun Bazar"] = 8m,
-            ["Hatirjheel|Rampura"] = 4m,
-            ["Hatirjheel|Tejgaon"] = 5m,
-
-            ["Mirpur|Mohanagar"] = 12m,
-            ["Mirpur|Mohakhali"] = 8m,
-            ["Mirpur|Notun Bazar"] = 12m,
-            ["Mirpur|Rampura"] = 13m,
-            ["Mirpur|Tejgaon"] = 7m,
-
-            ["Mohanagar|Mohakhali"] = 7m,
-            ["Mohanagar|Notun Bazar"] = 9m,
-            ["Mohanagar|Rampura"] = 4m,
-            ["Mohanagar|Tejgaon"] = 6m,
-
-            ["Mohakhali|Notun Bazar"] = 6m,
-            ["Mohakhali|Rampura"] = 7m,
-            ["Mohakhali|Tejgaon"] = 3m,
-
-            ["Notun Bazar|Rampura"] = 6m,
-            ["Notun Bazar|Tejgaon"] = 8m,
-
-            ["Rampura|Tejgaon"] = 7m
         };
 
     public IReadOnlyList<string> GetSupportedZones() => Zones;
@@ -161,15 +97,15 @@ public sealed class FixedFareCalculationService : IFareCalculationService
         {
             farePerSeat = fixedFare;
         }
-        else if (RouteDistancesKm.TryGetValue(
-                     routeKey,
-                     out var distanceKm))
-        {
-            farePerSeat = BaseFare + (PricePerKm * distanceKm);
-        }
         else
         {
-            return false;
+            // Use precomputed road distance from OSRM
+            var distanceKm = GetDistanceKm(pickup, destination);
+            if (distanceKm <= 0)
+            {
+                return false;
+            }
+            farePerSeat = BaseFare + (PricePerKm * (decimal)distanceKm);
         }
 
         if (rideType == TeslaMAMA.Models.RideType.SharedPool)
@@ -195,5 +131,32 @@ public sealed class FixedFareCalculationService : IFareCalculationService
             StringComparison.OrdinalIgnoreCase) < 0
             ? $"{pickup}|{destination}"
             : $"{destination}|{pickup}";
+    }
+
+    private double GetDistanceKm(string from, string to)
+    {
+        // Try precomputed road distance from database (loaded into memory store)
+        if (_roadDistances.TryGet(from, to, out var km))
+        {
+            return km;
+        }
+
+        // Fallback: straight-line distance scaled up to approximate roads
+        var fromCoord = ZoneCoordinates.GetCoordinate(from);
+        var toCoord = ZoneCoordinates.GetCoordinate(to);
+
+        if (fromCoord == null || toCoord == null)
+        {
+            return 0;
+        }
+
+        var straightLineKm = ZoneCoordinates.CalculateDistance(
+            fromCoord.Lat,
+            fromCoord.Lng,
+            toCoord.Lat,
+            toCoord.Lng);
+
+        // Roads are typically 1.2-1.5x longer than straight line
+        return straightLineKm * 1.3;
     }
 }
