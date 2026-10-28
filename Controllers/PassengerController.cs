@@ -17,23 +17,26 @@ public class PassengerController : Controller
     private readonly IFareCalculationService _fareCalculator;
     private readonly IDriverAssignmentService _assignmentService;
     private readonly RoadDistanceStore _roadDistanceStore;
+    private readonly IPassengerOverviewService _overviewService;
 
     public PassengerController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IFareCalculationService fareCalculator,
         IDriverAssignmentService assignmentService,
-        RoadDistanceStore roadDistanceStore)
+        RoadDistanceStore roadDistanceStore,
+        IPassengerOverviewService overviewService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _fareCalculator = fareCalculator;
         _assignmentService = assignmentService;
         _roadDistanceStore = roadDistanceStore;
+        _overviewService = overviewService;
     }
 
-    // GET: /Passenger/Dashboard
-    public async Task<IActionResult> Dashboard()
+    // GET: /Passenger/Overview
+    public async Task<IActionResult> Overview(string range = "6m")
     {
         var passenger = await _userManager.GetUserAsync(User);
 
@@ -42,6 +45,23 @@ public class PassengerController : Controller
 
         if (passenger.Role != UserRole.Passenger)
             return Forbid();
+
+        var viewModel = await _overviewService.GetOverviewAsync(passenger.Id, range);
+        return View(viewModel);
+    }
+
+    // GET: /Passenger/Activity (renamed from Dashboard)
+    public async Task<IActionResult> Activity(int? page = 1, string? filter = null)
+    {
+        var passenger = await _userManager.GetUserAsync(User);
+
+        if (passenger is null)
+            return Challenge();
+
+        if (passenger.Role != UserRole.Passenger)
+            return Forbid();
+
+        ViewBag.Filter = filter;
 
         var passengerRides = _dbContext.RideRequests
             .AsNoTracking()
@@ -56,6 +76,23 @@ public class PassengerController : Controller
             RideStatus.WaitingForPayment
         };
 
+        var pastStatuses = new[]
+        {
+            RideStatus.Completed,
+            RideStatus.Cancelled,
+            RideStatus.NoDriverAvailable
+        };
+
+        // Apply filter to past rides
+        if (filter == "completed")
+        {
+            pastStatuses = new[] { RideStatus.Completed };
+        }
+        else if (filter == "cancelled")
+        {
+            pastStatuses = new[] { RideStatus.Cancelled, RideStatus.NoDriverAvailable };
+        }
+
         var viewModel = new PassengerDashboardViewModel
         {
             FullName = string.IsNullOrWhiteSpace(passenger.FullName)
@@ -64,7 +101,7 @@ public class PassengerController : Controller
 
             TotalRides = await passengerRides.CountAsync(),
 
-            ActiveRides = await passengerRides.CountAsync(
+            ActiveRidesCount = await passengerRides.CountAsync(
                 ride => activeStatuses.Contains(ride.Status)),
 
             CompletedRides = await passengerRides.CountAsync(
@@ -75,46 +112,88 @@ public class PassengerController : Controller
                 .SumAsync(ride => (decimal?)ride.FinalFare) ?? 0m
         };
 
-        var recentRides = await passengerRides
+        // Load active rides with driver and vehicle info
+        var activeRides = await passengerRides
             .Include(ride => ride.Pool)
                 .ThenInclude(pool => pool!.Vehicle)
+                    .ThenInclude(vehicle => vehicle!.Driver)
+            .Where(ride => activeStatuses.Contains(ride.Status))
             .OrderByDescending(ride => ride.CreatedAt)
             .ThenByDescending(ride => ride.Id)
-            .Take(5)
             .ToListAsync();
 
-        viewModel.RecentRides = recentRides
-            .Select(ride => new PassengerRideItemViewModel
+        viewModel.ActiveRides = activeRides
+            .Select(ride => new ActiveRideViewModel
             {
                 Id = ride.Id,
                 PickupZone = ride.PickupZone,
                 DestinationZone = ride.DestinationZone,
                 Seats = ride.Seats,
+                IsSharedPool = ride.RideType == RideType.SharedPool,
                 Status = ride.Status,
-                PaymentMethod = ride.PaymentMethod,
                 FinalFare = ride.FinalFare,
                 CreatedAt = ride.CreatedAt,
-                PoolId = ride.PoolId,
-                PoolStatus = ride.Pool?.Status,
+                DriverName = ride.Pool?.Vehicle?.Driver?.FullName,
                 VehicleName = ride.Pool?.Vehicle?.Name,
-                PoolSeatsUsed = ride.Pool?.SeatsUsed,
-                VehicleCapacity = ride.Pool?.Vehicle?.Capacity,
-                OtherPassengersInPool = ride.Pool != null
+                VehicleCurrentZone = ride.Pool?.Vehicle?.CurrentZone,
+                PaymentMethod = ride.PaymentMethod,
+                PoolId = ride.PoolId,
+                OtherPassengersCount = ride.Pool != null
                     ? ride.Pool.RideRequests.Count(r =>
                         r.Id != ride.Id &&
                         r.Status != RideStatus.Completed &&
                         r.Status != RideStatus.Cancelled)
                     : null,
-                IsSharedPool = ride.RideType == RideType.SharedPool
+                PoolSeatsUsed = ride.Pool?.SeatsUsed,
+                VehicleCapacity = ride.Pool?.Vehicle?.Capacity
             })
             .ToList();
+
+        // Load past rides with pagination (20 per page)
+        const int pageSize = 20;
+        var currentPage = page ?? 1;
+        var pastRidesQuery = passengerRides
+            .Where(ride => pastStatuses.Contains(ride.Status))
+            .OrderByDescending(ride => ride.CreatedAt)
+            .ThenByDescending(ride => ride.Id);
+
+        var totalPastRides = await pastRidesQuery.CountAsync();
+        viewModel.HasMorePastRides = totalPastRides > pageSize * currentPage;
+
+        var pastRides = await pastRidesQuery
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        viewModel.PastRides = pastRides
+            .Select(ride => new PastRideViewModel
+            {
+                Id = ride.Id,
+                PickupZone = ride.PickupZone,
+                DestinationZone = ride.DestinationZone,
+                Seats = ride.Seats,
+                IsSharedPool = ride.RideType == RideType.SharedPool,
+                Status = ride.Status,
+                FinalFare = ride.FinalFare,
+                CreatedAt = ride.CreatedAt
+            })
+            .ToList();
+
+        viewModel.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
 
         return View(viewModel);
     }
 
+    // GET: /Passenger/Dashboard (legacy redirect)
+    [HttpGet]
+    public IActionResult Dashboard()
+    {
+        return RedirectToActionPermanent(nameof(Overview));
+    }
+
     // GET: /Passenger/Book
     [HttpGet]
-    public async Task<IActionResult> Book()
+    public async Task<IActionResult> Book(string? pickupZone, string? destinationZone, int? seats, string? rideType)
     {
         var passenger = await _userManager.GetUserAsync(User);
 
@@ -124,11 +203,34 @@ public class PassengerController : Controller
         if (passenger.Role != UserRole.Passenger)
             return Forbid();
 
+        var supportedZones = _fareCalculator.GetSupportedZones();
+
         var model = new PassengerBookingViewModel
         {
             ZoneCoordinates = ZoneCoordinates.GetCoordinates()
         };
         PopulateZones(model);
+
+        // Pre-fill from query parameters if valid
+        if (!string.IsNullOrWhiteSpace(pickupZone) && supportedZones.Contains(pickupZone, StringComparer.OrdinalIgnoreCase))
+        {
+            model.PickupZone = pickupZone;
+        }
+
+        if (!string.IsNullOrWhiteSpace(destinationZone) && supportedZones.Contains(destinationZone, StringComparer.OrdinalIgnoreCase))
+        {
+            model.DestinationZone = destinationZone;
+        }
+
+        if (seats.HasValue && seats.Value >= 1 && seats.Value <= 5)
+        {
+            model.Seats = seats.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(rideType) && Enum.TryParse<RideType>(rideType, true, out var parsedRideType) && Enum.IsDefined(parsedRideType))
+        {
+            model.RideType = parsedRideType;
+        }
 
         return View(model);
     }
@@ -311,7 +413,7 @@ public class PassengerController : Controller
                 $"Ride request #{ride.Id} submitted. Driver assignment could not be completed right now. Estimated fare: ৳{totalFare:N2}.";
         }
 
-        return RedirectToAction(nameof(Dashboard));
+        return RedirectToAction(nameof(Activity));
     }
 
     // GET: /Passenger/FareEstimate
@@ -448,7 +550,7 @@ public class PassengerController : Controller
             TempData["Error"] =
                 "This ride cannot be cancelled at this stage.";
 
-            return RedirectToAction(nameof(Dashboard));
+            return RedirectToAction(nameof(Activity));
         }
 
         var now = DateTime.UtcNow;
@@ -516,7 +618,77 @@ public class PassengerController : Controller
         TempData["BookingSuccess"] =
             $"Ride #{ride.Id} has been cancelled successfully.";
 
-        return RedirectToAction(nameof(Dashboard));
+        return RedirectToAction(nameof(Activity));
+    }
+
+    // GET: /Passenger/Details/{id}
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var passenger = await _userManager.GetUserAsync(User);
+
+        if (passenger is null)
+            return Challenge();
+
+        if (passenger.Role != UserRole.Passenger)
+            return Forbid();
+
+        var ride = await _dbContext.RideRequests
+            .AsNoTracking()
+            .Include(ride => ride.Pool)
+                .ThenInclude(pool => pool!.Vehicle)
+                    .ThenInclude(vehicle => vehicle!.Driver)
+            .Include(ride => ride.StatusHistory)
+            .Include(ride => ride.Payments)
+            .FirstOrDefaultAsync(ride => ride.Id == id && ride.PassengerId == passenger.Id);
+
+        if (ride is null)
+            return NotFound();
+
+        // Extract pickup time (when status changed to Started)
+        var pickupTime = ride.StatusHistory
+            .FirstOrDefault(h => h.ToStatus == RideStatus.Started)?.ChangedAt;
+
+        // Extract dropoff time (when status changed to WaitingForPayment or Completed)
+        var dropoffTime = ride.StatusHistory
+            .FirstOrDefault(h => h.ToStatus == RideStatus.WaitingForPayment || h.ToStatus == RideStatus.Completed)?.ChangedAt;
+
+        // Get payment info
+        var payment = ride.Payments.FirstOrDefault();
+        var paymentStatus = payment?.Status;
+        var paymentTransactionId = payment?.TransactionId;
+
+        var viewModel = new RideDetailsViewModel
+        {
+            Id = ride.Id,
+            PickupZone = ride.PickupZone,
+            DestinationZone = ride.DestinationZone,
+            Status = ride.Status,
+            Seats = ride.Seats,
+            IsSharedPool = ride.RideType == RideType.SharedPool,
+            PaymentMethod = ride.PaymentMethod,
+            FinalFare = ride.FinalFare,
+            CreatedAt = ride.CreatedAt,
+            DriverName = ride.Pool?.Vehicle?.Driver?.FullName,
+            VehicleName = ride.Pool?.Vehicle?.Name,
+            PoolId = ride.PoolId,
+            OtherPassengersCount = ride.Pool != null
+                ? ride.Pool.RideRequests.Count(r =>
+                    r.Id != ride.Id &&
+                    r.Status != RideStatus.Completed &&
+                    r.Status != RideStatus.Cancelled)
+                : null,
+            PoolSeatsUsed = ride.Pool?.SeatsUsed,
+            VehicleCapacity = ride.Pool?.Vehicle?.Capacity,
+            PickupTime = pickupTime,
+            DropoffTime = dropoffTime,
+            PaymentStatus = paymentStatus,
+            PaymentTransactionId = paymentTransactionId
+        };
+
+        viewModel.ZoneCoordinates = ZoneCoordinates.GetCoordinates();
+
+        return View(viewModel);
     }
 
 // POST: /Passenger/ConfirmPayment
@@ -554,7 +726,7 @@ public async Task<IActionResult> ConfirmPayment(
             TempData["Error"] =
                 "Payment confirmation is available only after the destination is reached.";
 
-            return RedirectToAction(nameof(Dashboard));
+            return RedirectToAction(nameof(Activity));
         }
 
         var now = DateTime.UtcNow;
@@ -616,7 +788,7 @@ public async Task<IActionResult> ConfirmPayment(
             TempData["BookingSuccess"] =
                 $"Payment confirmed for ride #{ride.Id}. Your ride is complete.";
 
-            return RedirectToAction(nameof(Dashboard));
+            return RedirectToAction(nameof(Activity));
         }
         catch (Exception)
         {
@@ -630,7 +802,7 @@ public async Task<IActionResult> ConfirmPayment(
             TempData["Error"] =
                 $"Payment processing failed for ride #{ride.Id}. Please try again.";
 
-            return RedirectToAction(nameof(Dashboard));
+            return RedirectToAction(nameof(Activity));
         }
     }
 

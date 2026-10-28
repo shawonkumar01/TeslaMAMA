@@ -32,6 +32,13 @@
     --tm-radius-sm: 10px;
     /* Page gutter: centres content in a 1160px column, min 20px each side */
     --tm-gutter: max(20px, calc((100% - 1160px) / 2));
+    /* UI consistency tokens */
+    --tm-card-radius: 20px;
+    --tm-card-padding: 20px;
+    --tm-card-padding-mobile: 16px;
+    --tm-btn-height: 46px;
+    --tm-btn-height-small: 38px;
+    --tm-section-gap: 28px;
 }
 
 /* =========================================================
@@ -106,7 +113,7 @@ textarea {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 46px;
+    min-height: var(--tm-btn-height);
     padding: 11px 22px;
     border: 1px solid transparent;
     border-radius: var(--tm-radius-sm);
@@ -1314,9 +1321,9 @@ main:has(.tm-dashboard) {
 .tm-dashboard-panel {
     overflow: hidden;
     border: 1px solid var(--tm-border);
-    border-radius: 20px;
+    border-radius: var(--tm-card-radius);
     background: var(--tm-white);
-    box-shadow: 0 10px 34px rgba(10, 31, 26, 0.06);
+    box-shadow: 0 6px 22px rgba(10, 31, 26, 0.05);
 }
 
 .tm-panel-header {
@@ -1698,8 +1705,13 @@ main:has(.tm-dashboard) {
 }
 
 .tm-status-cancelled {
-    background: #ffebeb;
-    color: #b42318;
+    background: #edf2ef;
+    color: var(--tm-muted);
+}
+
+.tm-activity .tm-status-cancelled {
+    background: #f5f5f5;
+    color: #888;
 }
 
 .tm-status-nodriveravailable {
@@ -2773,3 +2785,1173 @@ div[role="alert"].text-danger ul {
             width: 100%;
         }
 }
+
+/* =========================================================
+   Passenger Activity page (Uber-style redesign)
+   ========================================================= */
+
+main:has(.tm-activity-page) {
+    background: var(--tm-bg);
+}
+
+.tm-activity-page {
+    width: min(760px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 52px 0 80px;
+}
+
+.tm-activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.tm-activity-header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tm-activity-header-title > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.tm-activity-icon {
+    color: var(--tm-green);
+    flex-shrink: 0;
+}
+
+.tm-activity-header h1 {
+    margin: 0;
+    color: var(--tm-forest-900);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+}
+
+.tm-activity-header p {
+    margin: 4px 0 0;
+    color: var(--tm-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.tm-activity-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    border-radius: var(--tm-radius-sm);
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+.tm-activity-note-success {
+    border: 1px solid #b9e6cc;
+    background: #e9f8ef;
+    color: #14633f;
+}
+
+.tm-activity-note-error {
+    border: 1px solid #fecdca;
+    background: #fef3f2;
+    color: #b42318;
+}
+
+.tm-activity-section {
+    margin-bottom: 40px;
+}
+
+.tm-activity-section-title {
+    margin: 0 0 20px;
+    color: var(--tm-forest-900);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* Active ride cards */
+.tm-ride-card {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--tm-section-gap);
+    border: 1px solid var(--tm-border);
+    border-radius: var(--tm-card-radius);
+    background: var(--tm-white);
+    box-shadow: 0 6px 22px rgba(10, 31, 26, 0.05);
+}
+
+.tm-ride-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.tm-ride-card-map {
+    position: relative;
+    z-index: 0;
+}
+
+.tm-ride-card-content {
+    position: relative;
+    z-index: 2;
+    padding: var(--tm-card-padding);
+}
+
+.tm-ride-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.tm-ride-type {
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.tm-ride-route {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--tm-forest-900);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.tm-route-arrow {
+    flex-shrink: 0;
+    color: var(--tm-green);
+}
+
+.tm-ride-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+}
+
+.tm-ride-fare {
+    margin-bottom: 12px;
+    color: var(--tm-forest-900);
+    font-size: 1.1rem;
+}
+
+.tm-ride-driver {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+}
+
+.tm-driver-label {
+    font-weight: 600;
+}
+
+.tm-ride-card-actions {
+    position: relative;
+    z-index: 2;
+    padding: 16px 24px;
+    border-top: 1px solid var(--tm-border);
+    background: #fafcfb;
+}
+
+.tm-ride-card-actions form {
+    margin: 0;
+}
+
+/* Progress bar for Requested rides */
+.tm-progress-bar-container {
+    margin-top: 16px;
+}
+
+.tm-progress-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.tm-progress-bar-title {
+    color: var(--tm-forest-900);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.tm-progress-bar-time {
+    color: var(--tm-green);
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.tm-progress-bar-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--tm-border);
+    overflow: hidden;
+}
+
+.tm-progress-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--tm-green);
+    border-radius: 999px;
+    transition: width 1s linear, background-color 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tm-progress-bar-fill {
+        transition: none;
+    }
+}
+
+.tm-progress-bar-hint {
+    margin-top: 6px;
+    color: var(--tm-muted);
+    font-size: 0.8rem;
+}
+
+/* Past rides list - Compact design */
+.tm-activity-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.tm-activity-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.tm-filter-link {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--tm-white);
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tm-filter-link:hover {
+    background: var(--tm-mint-100);
+    color: var(--tm-green);
+}
+
+.tm-filter-link.is-active {
+    background: var(--tm-green);
+    color: var(--tm-white);
+}
+
+/* Featured card */
+.tm-activity-featured {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+    margin-bottom: 24px;
+}
+
+.tm-activity-featured-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.tm-activity-featured-map {
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-activity-featured-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px;
+}
+
+.tm-activity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.tm-activity-info strong {
+    color: var(--tm-forest-900);
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tm-activity-info span {
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+}
+
+.tm-activity-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.tm-activity-fare {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--tm-forest-900);
+}
+
+.tm-fare-void {
+    color: var(--tm-muted);
+    font-weight: 600;
+}
+
+.tm-fare-void .tm-fare-amount {
+    text-decoration: line-through;
+}
+
+/* Compact list */
+.tm-activity-list {
+    overflow: hidden;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+}
+
+.tm-activity-month {
+    margin: 24px 0 12px 20px;
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tm-activity-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 10px 16px;
+    border: 0;
+    border-bottom: 1px solid var(--tm-border);
+    border-radius: 0;
+    box-shadow: none;
+    transition: background 0.15s ease;
+}
+
+.tm-activity-row:last-child {
+    border-bottom: 0;
+}
+
+.tm-activity-row:hover {
+    background: #fafcfb;
+}
+
+.tm-activity-row:focus-visible {
+    outline: 2px solid var(--tm-green);
+    outline-offset: -2px;
+}
+
+.tm-activity-row-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.tm-activity-thumb {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--tm-mint-100);
+    color: var(--tm-green);
+    flex-shrink: 0;
+}
+
+.tm-activity-row.is-void .tm-activity-thumb {
+    background: #edf2ef;
+    color: #8aa399;
+}
+
+.tm-activity-row.is-void strong {
+    color: var(--tm-muted);
+}
+
+/* Rebook button */
+.tm-rebook {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--tm-white);
+    color: var(--tm-forest-800);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--tm-border);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    position: relative;
+    z-index: 2;
+    text-decoration: none;
+}
+
+.tm-rebook:hover {
+    background: var(--tm-mint-100);
+    border-color: var(--tm-green);
+    color: var(--tm-green);
+}
+
+.tm-rebook:focus-visible {
+    outline: 2px solid var(--tm-green);
+    outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+    .tm-rebook span {
+        display: none;
+    }
+}
+
+.tm-activity-show-more {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.tm-activity-empty {
+    padding: 44px 24px 30px;
+    text-align: center;
+}
+
+/* ---- Ride progress timeline ---- */
+.tm-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin: 18px 0 4px;
+    padding: 0;
+    list-style: none;
+}
+.tm-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--tm-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+}
+.tm-step::before {                       /* connector from the previous dot */
+    content: "";
+    position: absolute;
+    top: 7px;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--tm-border);
+}
+.tm-step:first-child::before { display: none; }
+.tm-step-dot {
+    position: relative;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--tm-border);
+    border-radius: 50%;
+    background: var(--tm-white);
+}
+.tm-step.is-done::before,
+.tm-step.is-current::before { background: var(--tm-green); }
+.tm-step.is-done .tm-step-dot { border-color: var(--tm-green); background: var(--tm-green); }
+.tm-step.is-current .tm-step-dot {
+    border-color: var(--tm-green);
+    box-shadow: 0 0 0 4px rgba(26, 110, 85, 0.18);
+}
+.tm-step.is-done,
+.tm-step.is-current { color: var(--tm-forest-900); }
+
+@media (max-width: 560px) { .tm-step { font-size: 0.68rem; } }
+
+/* ---- Pool strip ---- */
+.tm-pool-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 14px; padding: 10px 14px;
+    border: 1px solid var(--tm-mint-200); border-radius: 12px;
+    background: var(--tm-mint-100); color: var(--tm-forest-800); font-size: 0.85rem;
+}
+
+/* ---- Taka symbol size fix ---- */
+.tm-taka {
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+/* =========================================================
+   Ride Details page
+   ========================================================= */
+
+main:has(.tm-ride-details-page) {
+    background: var(--tm-bg);
+}
+
+.tm-ride-details-page {
+    width: min(760px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 52px 0 80px;
+}
+
+.tm-ride-details-nav {
+    margin-bottom: 20px;
+}
+
+.tm-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--tm-green);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.tm-back-link:hover {
+    color: var(--tm-forest-800);
+}
+
+.tm-ride-details-title {
+    margin: 0 0 24px;
+    color: var(--tm-forest-900);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+}
+
+.tm-ride-details-card {
+    overflow: hidden;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+    box-shadow: 0 10px 34px rgba(10, 31, 26, 0.06);
+}
+
+.tm-ride-details-map {
+    position: relative;
+    z-index: 0;
+}
+
+.tm-ride-details-info {
+    padding: 24px 28px;
+}
+
+.tm-ride-details-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.tm-ride-details-header h2 {
+    margin: 0;
+    color: var(--tm-forest-900);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.tm-ride-details-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-ride-details-date {
+    color: var(--tm-muted);
+    font-size: 0.9rem;
+}
+
+.tm-ride-details-fare {
+    color: var(--tm-forest-900);
+    font-size: 1.2rem;
+}
+
+.tm-ride-details-fare.tm-fare-void {
+    color: var(--tm-muted);
+    font-weight: 600;
+}
+
+.tm-ride-details-fare.tm-fare-void .tm-fare-amount {
+    text-decoration: line-through;
+}
+
+/* Receipt toggle */
+.tm-receipt-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--tm-border);
+    border-radius: var(--tm-radius-sm);
+    background: #fafcfb;
+    color: var(--tm-forest-900);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tm-receipt-toggle:hover {
+    background: #f5f9f6;
+    border-color: rgba(26, 110, 85, 0.3);
+}
+
+.tm-receipt-toggle svg {
+    transition: transform 0.2s ease;
+}
+
+.tm-receipt-toggle-open svg {
+    transform: rotate(180deg);
+}
+
+.tm-receipt-panel {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--tm-border);
+    border-radius: var(--tm-radius-sm);
+    background: #fafcfb;
+}
+
+.tm-receipt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-receipt-row:last-child {
+    border-bottom: none;
+}
+
+.tm-receipt-label {
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.tm-receipt-value {
+    color: var(--tm-forest-900);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.tm-receipt-value-completed {
+    color: #167348;
+}
+
+.tm-receipt-value-pending {
+    color: #956300;
+}
+
+.tm-receipt-value-failed {
+    color: #b42318;
+}
+
+.tm-receipt-row-total {
+    padding-top: 12px;
+    border-top: 2px solid var(--tm-border);
+    border-bottom: none;
+}
+
+.tm-receipt-value-total {
+    font-size: 1.1rem;
+}
+
+.tm-receipt-value-total .tm-fare-amount {
+    text-decoration: line-through;
+}
+
+/* Timeline */
+.tm-ride-timeline {
+    margin: 24px 0;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--tm-border);
+}
+
+.tm-timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.tm-timeline-marker {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 4px;
+    border: 2px solid var(--tm-green);
+    border-radius: 50%;
+    background: var(--tm-white);
+}
+
+.tm-timeline-marker-hollow {
+    background: var(--tm-white);
+}
+
+.tm-timeline-marker-filled {
+    background: var(--tm-green);
+}
+
+.tm-timeline-content {
+    flex: 1;
+}
+
+.tm-timeline-content strong {
+    display: block;
+    color: var(--tm-forest-900);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.tm-timeline-time {
+    display: block;
+    margin-top: 2px;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+}
+
+/* Actions */
+.tm-ride-details-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.tm-ride-details-actions form {
+    margin: 0;
+}
+
+/* Help & Safety */
+.tm-ride-details-help {
+    padding: 20px 28px;
+    border-top: 1px solid var(--tm-border);
+    background: #fafcfb;
+}
+
+.tm-ride-details-help h3 {
+    margin: 0 0 16px;
+    color: var(--tm-forest-900);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.tm-help-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tm-help-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    color: var(--tm-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.tm-help-item svg {
+    flex-shrink: 0;
+    color: var(--tm-green);
+}
+
+/* Mobile breakpoint */
+@media (max-width: 560px) {
+    .tm-activity-page,
+    .tm-ride-details-page {
+        width: calc(100% - 32px);
+        padding: 36px 0 60px;
+    }
+
+    .tm-activity-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tm-activity-header-title {
+        margin-bottom: 16px;
+    }
+
+    .tm-activity-header .tm-btn {
+        width: 100%;
+    }
+
+    .tm-activity-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .tm-activity-filters {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .tm-activity-featured-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .tm-activity-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .tm-activity-row {
+        grid-template-columns: 44px 1fr auto;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .tm-activity-thumb {
+        width: 44px;
+        height: 44px;
+    }
+
+    .tm-activity-row .tm-rebook {
+        grid-column: 3;
+    }
+
+    .tm-ride-card-actions,
+    .tm-ride-details-actions {
+        flex-direction: column;
+    }
+
+    .tm-ride-card-actions .tm-btn,
+    .tm-ride-details-actions .tm-btn,
+    .tm-ride-details-actions .tm-btn-primary {
+        width: 100%;
+    }
+
+    .tm-past-ride-row {
+        grid-template-columns: 56px 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .tm-past-ride-row .tm-btn-rebook {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .tm-past-ride-featured {
+        padding: 0;
+    }
+
+    .tm-past-ride-featured-content {
+        padding: 16px;
+    }
+
+    .tm-past-ride-featured .tm-past-ride-destination {
+        font-size: 1.1rem;
+    }
+
+    .tm-past-ride-row:not(.tm-past-ride-featured) {
+        padding: 12px 16px;
+    }
+
+    .tm-ride-details-info {
+        padding: var(--tm-card-padding-mobile);
+    }
+
+    .tm-ride-details-help {
+        padding: 16px 20px;
+}
+
+    .tm-ride-card-content {
+        padding: var(--tm-card-padding-mobile);
+    }
+
+    .tm-pool-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+/* =========================================================
+   Passenger overview page
+   ========================================================= */
+
+main:has(.tm-overview-page) {
+    background: var(--tm-bg);
+}
+
+.tm-overview-page {
+    width: min(1160px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 52px 0 80px;
+}
+
+.tm-overview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.tm-overview-header .tm-eyebrow {
+    margin-bottom: 14px;
+}
+
+.tm-overview-header h1 {
+    margin: 0 0 10px;
+    color: var(--tm-forest-900);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+}
+
+.tm-overview-header p {
+    margin: 0;
+    color: var(--tm-muted);
+    line-height: 1.7;
+}
+
+.tm-range-pills {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.tm-range-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid var(--tm-border);
+    border-radius: 999px;
+    background: var(--tm-white);
+    color: var(--tm-forest-800);
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.tm-range-pill:hover {
+    border-color: var(--tm-green);
+    color: var(--tm-green);
+}
+
+.tm-range-pill-active {
+    background: var(--tm-green);
+    color: var(--tm-white);
+    border-color: var(--tm-green);
+}
+
+.tm-range-pill-active:hover {
+    background: var(--tm-green-hover);
+    color: var(--tm-white);
+}
+
+.tm-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: linear-gradient(155deg, var(--tm-forest-800) 0%, var(--tm-forest-950) 100%);
+    color: var(--tm-white);
+}
+
+.tm-active-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tm-active-banner-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(169, 229, 203, 0.2);
+    color: var(--tm-mint-300);
+}
+
+.tm-active-banner strong {
+    display: block;
+    color: var(--tm-white);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.tm-active-banner-route {
+    display: block;
+    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.tm-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.tm-chart-card {
+    padding: 24px;
+    border: 1px solid var(--tm-border);
+    border-radius: 20px;
+    background: var(--tm-white);
+    box-shadow: 0 10px 34px rgba(10, 31, 26, 0.06);
+}
+
+.tm-chart-card-full {
+    grid-column: 1 / -1;
+}
+
+.tm-chart-card h3 {
+    margin: 0 0 4px;
+    color: var(--tm-forest-900);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.tm-chart-card p {
+    margin: 0 0 16px;
+    color: var(--tm-muted);
+    font-size: 0.85rem;
+}
+
+.tm-chart-wrap {
+    position: relative;
+    height: 280px;
+    margin-bottom: 16px;
+}
+
+.tm-chart-summary {
+    margin: 0;
+    color: var(--tm-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.tm-overview-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.tm-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 900px) {
+    .tm-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tm-chart-card-full {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 560px) {
+    .tm-overview-page {
+        width: calc(100% - 32px);
+        padding: 36px 0 60px;
+    }
+
+    .tm-overview-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tm-range-pills {
+        justify-content: flex-start;
+    }
+
+    .tm-dashboard-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tm-active-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tm-active-banner .tm-btn {
+        width: 100%;
+    }
+
+    .tm-overview-actions {
+        flex-direction: column;
+    }
+
+    .tm-overview-actions .tm-btn {
+        width: 100%;
+    }
+}
+
