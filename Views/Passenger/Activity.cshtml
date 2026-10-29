@@ -40,11 +40,6 @@
                 <p><span class="tm-taka">৳</span>@Model.TotalSpent.ToString("N2") spent on completed rides</p>
             </div>
         </div>
-        <div class="tm-activity-header-actions">
-            <a asp-controller="Passenger" asp-action="Book" class="tm-btn tm-btn-primary">
-                Book a ride
-            </a>
-        </div>
     </div>
 
     @if (TempData["BookingSuccess"] is string bookingSuccess)
