@@ -3035,6 +3035,10 @@ main:has(.tm-activity-page) {
     margin-bottom: 20px;
 }
 
+.tm-activity-section-header .tm-activity-section-title {
+    margin-bottom: 0;
+}
+
 .tm-activity-filters {
     display: flex;
     gap: 8px;
@@ -3240,6 +3244,16 @@ main:has(.tm-activity-page) {
 }
 
 @media (max-width: 560px) {
+    .tm-rebook {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        padding: 0;
+        gap: 0;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
     .tm-rebook span {
         display: none;
     }
@@ -3619,20 +3633,27 @@ main:has(.tm-ride-details-page) {
     .tm-activity-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 0;
+        margin-bottom: 16px;
     }
 
     .tm-activity-header-title {
-        margin-bottom: 16px;
+        margin-bottom: 0;
     }
 
     .tm-activity-header .tm-btn {
         width: 100%;
     }
 
+    .tm-activity-section {
+        margin-bottom: 28px;
+    }
+
     .tm-activity-section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
+        gap: 10px;
+        margin-bottom: 16px;
     }
 
     .tm-activity-filters {
@@ -3653,9 +3674,10 @@ main:has(.tm-ride-details-page) {
     }
 
     .tm-activity-row {
-        grid-template-columns: 44px 1fr auto;
-        gap: 12px;
-        padding: 12px 16px;
+        grid-template-columns: 44px minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 8px 10px;
+        padding: 12px 14px;
     }
 
     .tm-activity-thumb {
@@ -3664,7 +3686,9 @@ main:has(.tm-ride-details-page) {
     }
 
     .tm-activity-row .tm-rebook {
-        grid-column: 3;
+        grid-column: auto;
+        align-self: center;
+        justify-self: end;
     }
 
     .tm-ride-card-actions,
