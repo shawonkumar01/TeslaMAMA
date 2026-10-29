@@ -359,6 +359,13 @@
             initMap();
             updateMap();
 
+            // If values are pre-filled (e.g., from Rebook), trigger updates
+            if (pickup.value && destination.value) {
+                checkDriverAvailability();
+                updateFare();
+                updateMap();
+            }
+
             pickup.addEventListener("change", () => {
                 checkDriverAvailability();
                 updateFare();

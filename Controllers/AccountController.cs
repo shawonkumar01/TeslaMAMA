@@ -168,7 +168,7 @@ public class AccountController : Controller
 
             if (user.Role == UserRole.Passenger)
             {
-                return RedirectToAction("Dashboard", "Passenger");
+                return RedirectToAction("Overview", "Passenger");
             }
 
             return RedirectToAction("Index", "Home");

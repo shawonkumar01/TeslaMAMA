@@ -1,0 +1,373 @@
+@model TeslaMAMA.Models.PassengerOverviewViewModel
+
+@{
+    ViewData["Title"] = "Overview";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+<div class="tm-overview-page">
+    <div class="tm-overview-header">
+        <div>
+            <span class="tm-eyebrow">PASSENGER PORTAL</span>
+            <h1>Overview</h1>
+            <p>Your ride activity at a glance</p>
+        </div>
+
+        <div class="tm-range-pills">
+            <a asp-controller="Passenger" asp-action="Overview" asp-route-range="30d" class="tm-range-pill @(Model.Range == "30d" ? "tm-range-pill-active" : "")">30d</a>
+            <a asp-controller="Passenger" asp-action="Overview" asp-route-range="6m" class="tm-range-pill @(Model.Range == "6m" ? "tm-range-pill-active" : "")">6m</a>
+            <a asp-controller="Passenger" asp-action="Overview" asp-route-range="12m" class="tm-range-pill @(Model.Range == "12m" ? "tm-range-pill-active" : "")">12m</a>
+            <a asp-controller="Passenger" asp-action="Overview" asp-route-range="all" class="tm-range-pill @(Model.Range == "all" ? "tm-range-pill-active" : "")">All</a>
+        </div>
+    </div>
+
+    @if (TempData["BookingSuccess"] is string bookingSuccess)
+    {
+        <div class="tm-activity-note tm-activity-note-success" role="status">
+            @bookingSuccess
+        </div>
+    }
+
+    @if (TempData["Error"] is string errorMessage)
+    {
+        <div class="tm-activity-note tm-activity-note-error" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    @if (Model.ActiveRide != null)
+    {
+        <div class="tm-active-banner">
+            <div class="tm-active-banner-content">
+                <div class="tm-active-banner-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <strong>You have a ride in progress</strong>
+                    <span class="tm-active-banner-route">@Model.ActiveRide.PickupZone → @Model.ActiveRide.DestinationZone</span>
+                </div>
+            </div>
+            <a asp-controller="Passenger" asp-action="Activity" class="tm-btn tm-btn-primary tm-btn-small">View ride</a>
+        </div>
+    }
+
+    @if (Model.TotalRides == 0)
+    {
+        <div class="tm-dashboard-panel">
+            <div class="tm-dashboard-empty">
+                <div class="tm-empty-icon">📊</div>
+                <h3>No rides in this period yet</h3>
+                <p>Start booking rides to see your activity insights here.</p>
+                <a asp-controller="Passenger" asp-action="Book" class="tm-btn tm-btn-primary">Book a ride</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- KPI Cards -->
+        <section class="tm-dashboard-stats" aria-label="Key performance indicators">
+            <article class="tm-stat-card">
+                <div class="tm-stat-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+                <p>Total spent</p>
+                <h2><span class="tm-taka">৳</span>@Model.TotalSpent.ToString("N2")</h2>
+                <span>Completed rides only</span>
+            </article>
+
+            <article class="tm-stat-card">
+                <div class="tm-stat-icon tm-stat-icon-teal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="M12 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+                <p>Rides</p>
+                <h2>@Model.TotalRides</h2>
+                <span>@Model.CompletedRides completed</span>
+            </article>
+
+            <article class="tm-stat-card">
+                <div class="tm-stat-icon tm-stat-icon-blue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <p>Average fare</p>
+                <h2><span class="tm-taka">৳</span>@Model.AverageFare.ToString("N2")</h2>
+                <span>Per completed ride</span>
+            </article>
+
+            <article class="tm-stat-card">
+                <div class="tm-stat-icon tm-stat-icon-gold">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <p>Cancellation rate</p>
+                <h2>@Model.CancellationRate.ToString("F1")%</h2>
+                <span>Of total rides</span>
+            </article>
+        </section>
+
+        <!-- Charts Grid -->
+        <div class="tm-overview-grid">
+            <!-- Spending per month -->
+            <article class="tm-chart-card tm-chart-card-full">
+                <h3>Spending over time</h3>
+                <p>Total fare by @Model.RangeLabel.ToLower()</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="spendingChart" aria-label="Spending per month bar chart"></canvas>
+                </div>
+                @if (Model.MonthlySpending.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Highest: <span class="tm-taka">৳</span>@Model.MonthlySpending.Max(x => x.Amount).ToString("N2") in @Model.MonthlySpending.OrderByDescending(x => x.Amount).First().Label
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Spending per month</caption>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Amount</th>
+                            <th>Rides</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.MonthlySpending)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td><span class="tm-taka">৳</span>@item.Amount.ToString("N2")</td>
+                                <td>@item.Rides</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+
+            <!-- Rides by status -->
+            <article class="tm-chart-card">
+                <h3>Rides by status</h3>
+                <p>Distribution of ride outcomes</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="statusChart" aria-label="Rides by status doughnut chart"></canvas>
+                </div>
+                @if (Model.StatusCounts.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Most common: @Model.StatusCounts.OrderByDescending(x => x.Count).First().Label (@Model.StatusCounts.OrderByDescending(x => x.Count).First().Count rides)
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Rides by status</caption>
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.StatusCounts)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td>@item.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+
+            <!-- Shared pool vs private -->
+            <article class="tm-chart-card">
+                <h3>Ride type</h3>
+                <p>Shared pool vs private rides</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="rideTypeChart" aria-label="Ride type pie chart"></canvas>
+                </div>
+                @if (Model.RideTypeCounts.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Shared pool: @Model.SharedPoolPercent.ToString("F1")%
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Ride type distribution</caption>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.RideTypeCounts)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td>@item.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+
+            <!-- Top routes -->
+            <article class="tm-chart-card">
+                <h3>Top routes</h3>
+                <p>Your most frequently taken routes</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="topRoutesChart" aria-label="Top routes horizontal bar chart"></canvas>
+                </div>
+                @if (Model.TopRoutes.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Most taken: @Model.TopRoutes.First().Label (@Model.TopRoutes.First().Count times)
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Top routes</caption>
+                    <thead>
+                        <tr>
+                            <th>Route</th>
+                            <th>Count</th>
+                            <th>Total spent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.TopRoutes)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td>@item.Count</td>
+                                <td><span class="tm-taka">৳</span>@item.TotalSpent.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+
+            <!-- Payment methods -->
+            <article class="tm-chart-card">
+                <h3>Payment methods</h3>
+                <p>How you pay for rides</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="paymentChart" aria-label="Payment methods doughnut chart"></canvas>
+                </div>
+                @if (Model.PaymentMethodCounts.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Most used: @Model.PaymentMethodCounts.OrderByDescending(x => x.Count).First().Label
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Payment methods</caption>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.PaymentMethodCounts)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td>@item.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+
+            <!-- Rides by weekday -->
+            <article class="tm-chart-card">
+                <h3>Rides by weekday</h3>
+                <p>Which days you ride most</p>
+                <div class="tm-chart-wrap">
+                    <canvas id="weekdayChart" aria-label="Rides by weekday bar chart"></canvas>
+                </div>
+                @if (Model.WeekdayCounts.Any())
+                {
+                    <p class="tm-chart-summary">
+                        Busiest: @Model.WeekdayCounts.OrderByDescending(x => x.Count).First().Label (@Model.WeekdayCounts.OrderByDescending(x => x.Count).First().Count rides)
+                    </p>
+                }
+                else
+                {
+                    <p class="tm-chart-summary">No data for this period</p>
+                }
+                <table class="tm-sr-only">
+                    <caption>Rides by weekday</caption>
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.WeekdayCounts)
+                        {
+                            <tr>
+                                <td>@item.Label</td>
+                                <td>@item.Count</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </article>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="tm-overview-actions">
+            <a asp-controller="Passenger" asp-action="Activity" class="tm-btn tm-btn-outline">See all activity</a>
+            <a asp-controller="Passenger" asp-action="PaymentHistory" class="tm-btn tm-btn-outline">Payment history</a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/tm-overview.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            }));
+
+            TeslaMAMA.Overview.init(data);
+        });
+    </script>
+}

@@ -26,6 +26,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IDriverAssignmentService,
     TeslaMAMA.Services.DriverAssignmentService>();
+builder.Services.AddScoped<
+    IPassengerOverviewService,
+    PassengerOverviewService>();
 builder.Services.AddHostedService<RideOfferTimeoutService>();
 
 // Road distance caching

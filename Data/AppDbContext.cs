@@ -185,7 +185,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(p => p.Status);
 
             entity.HasOne(p => p.RideRequest)
-                .WithMany()
+                .WithMany(r => r.Payments)
                 .HasForeignKey(p => p.RideRequestId)
                 .OnDelete(DeleteBehavior.Restrict);
 

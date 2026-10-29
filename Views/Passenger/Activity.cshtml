@@ -1,0 +1,524 @@
+﻿@model TeslaMAMA.Models.PassengerDashboardViewModel
+
+@{
+    ViewData["Title"] = "Activity";
+}
+
+@functions {
+    static readonly string[] Steps = { "Requested", "Matched", "Arrived", "On the way", "Payment" };
+
+    static int StepIndex(RideStatus s) => s switch
+    {
+        RideStatus.Requested         => 0,
+        RideStatus.Matched           => 1,
+        RideStatus.DriverArrived     => 2,
+        RideStatus.Started           => 3,
+        RideStatus.WaitingForPayment => 4,
+        _                            => 0
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+<div class="tm-activity-page">
+    <div class="tm-activity-header">
+        <div class="tm-activity-header-title">
+            <svg class="tm-activity-icon" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <!-- Rickshaw/Three-wheeler icon -->
+                <circle cx="24" cy="24" r="3"></circle>
+                <circle cx="8" cy="24" r="3"></circle>
+                <path d="M6 21 L6 14 L12 8 L20 8 L24 14 L24 21 L6 21"></path>
+                <path d="M12 8 L12 21"></path>
+                <path d="M20 8 L20 21"></path>
+                <circle cx="10" cy="6" r="2"></circle>
+                <path d="M10 4 L10 8"></path>
+            </svg>
+            <div>
+                <h1>Activity</h1>
+                <p><span class="tm-taka">৳</span>@Model.TotalSpent.ToString("N2") spent on completed rides</p>
+            </div>
+        </div>
+        <div class="tm-activity-header-actions">
+            <a asp-controller="Passenger" asp-action="Book" class="tm-btn tm-btn-primary">
+                Book a ride
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["BookingSuccess"] is string bookingSuccess)
+    {
+        <div class="tm-activity-note tm-activity-note-success" role="status">
+            @bookingSuccess
+        </div>
+    }
+
+    @if (TempData["Error"] is string errorMessage)
+    {
+        <div class="tm-activity-note tm-activity-note-error" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <!-- Current Section (Active Rides) -->
+    @if (Model.ActiveRides.Count > 0)
+    {
+        <section class="tm-activity-section" aria-label="Current rides">
+            <h2 class="tm-activity-section-title">Current</h2>
+
+            @foreach (var ride in Model.ActiveRides)
+            {
+                <article class="tm-ride-card tm-ride-card-active">
+                    <a asp-controller="Passenger" asp-action="Details" asp-route-id="@ride.Id" class="tm-ride-card-link"></a>
+
+                    <div class="tm-ride-card-map">
+                        <div id="active-map-@ride.Id" class="tm-map" style="height: 200px; z-index: 0;"></div>
+                    </div>
+
+                    <div class="tm-ride-card-content">
+                        <div class="tm-ride-card-header">
+                            <span class="tm-status tm-status-@ride.Status.ToString().ToLowerInvariant()">
+                                @(ride.Status == RideStatus.DriverArrived
+                                    ? "Driver arrived"
+                                    : ride.Status == RideStatus.WaitingForPayment
+                                        ? "Waiting for payment"
+                                        : ride.Status == RideStatus.Started
+                                            ? "In progress"
+                                            : ride.Status.ToString())
+                            </span>
+                            <span class="tm-ride-type">
+                                @(ride.IsSharedPool ? "Shared pool" : "Private")
+                            </span>
+                        </div>
+
+                        <div class="tm-ride-route">
+                            <span class="tm-ride-zone">@ride.PickupZone</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tm-route-arrow">
+                                <path d="M5 12h14"></path>
+                                <path d="M12 5l7 7-7 7"></path>
+                            </svg>
+                            <span class="tm-ride-zone">@ride.DestinationZone</span>
+                        </div>
+
+                        <div class="tm-ride-meta">
+                            <span>@ride.Seats @(ride.Seats == 1 ? "seat" : "seats")</span>
+                            @if (ride.PoolId.HasValue)
+                            {
+                                <span>• Pool #@ride.PoolId</span>
+                            }
+                            @if (ride.OtherPassengersCount.HasValue && ride.OtherPassengersCount > 0)
+                            {
+                                <span>• +@ride.OtherPassengersCount riding</span>
+                            }
+                        </div>
+
+                        <div class="tm-ride-fare">
+                            <strong><span class="tm-taka">৳</span>@ride.FinalFare.ToString("N2")</strong>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(ride.DriverName))
+                        {
+                            <div class="tm-ride-driver">
+                                <span class="tm-driver-label">Driver:</span>
+                                <strong>@ride.DriverName</strong>
+                                @if (!string.IsNullOrWhiteSpace(ride.VehicleName))
+                                {
+                                    <span>• @ride.VehicleName</span>
+                                }
+                            </div>
+                        }
+
+                        <!-- Pool strip -->
+                        @if (ride.IsSharedPool && ride.VehicleCapacity.HasValue)
+                        {
+                            <div class="tm-pool-strip">
+                                <strong>Shared pool</strong>
+                                <span>@ride.PoolSeatsUsed of @ride.VehicleCapacity seats filled</span>
+                            </div>
+                        }
+
+                        <!-- Timeline -->
+                        @{ var idx = StepIndex(ride.Status); }
+                        <ol class="tm-steps" aria-label="Ride progress">
+                            @for (var i = 0; i < Steps.Length; i++)
+                            {
+                                var state = i < idx ? "is-done" : i == idx ? "is-current" : "";
+                                <li class="tm-step @state" aria-current="@(i == idx ? "step" : null)">
+                                    <span class="tm-step-dot"></span>
+                                    <span class="tm-step-label">@Steps[i]</span>
+                                </li>
+                            }
+                        </ol>
+
+                        @if (ride.Status == RideStatus.Requested)
+                        {
+                            <div class="tm-progress-bar-container">
+                                <div class="tm-progress-bar-header">
+                                    <span class="tm-progress-bar-title">Finding driver…</span>
+                                    <span class="tm-progress-bar-time" data-ride-id="@ride.Id" data-created-at="@(ride.CreatedAt.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(ride.CreatedAt, DateTimeKind.Utc).ToString("o") : ride.CreatedAt.ToString("o"))">1:00</span>
+                                </div>
+                                <div class="tm-progress-bar-track">
+                                    <div class="tm-progress-bar-fill" role="progressbar" aria-valuemin="0" aria-valuemax="60" aria-valuenow="60"></div>
+                                </div>
+                                <div class="tm-progress-bar-hint">
+                                    @(ride.IsSharedPool ? "Waiting for pool match" : "Waiting for driver")
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="tm-ride-card-actions">
+                        @if (ride.Status == RideStatus.Requested || ride.Status == RideStatus.Matched || ride.Status == RideStatus.DriverArrived)
+                        {
+                            <form asp-controller="Passenger" asp-action="CancelRide" method="post" onsubmit="return confirm('Are you sure you want to cancel this ride?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="rideId" value="@ride.Id" />
+                                <button type="submit" class="tm-btn tm-btn-danger">Cancel ride</button>
+                            </form>
+                        }
+                        else if (ride.Status == RideStatus.WaitingForPayment)
+                        {
+                            <form asp-controller="Passenger" asp-action="ConfirmPayment" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="rideId" value="@ride.Id" />
+                                <button type="submit" class="tm-btn tm-btn-primary">Confirm payment</button>
+                            </form>
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+
+    <!-- Past Section -->
+    <section class="tm-activity-section" aria-label="Past rides">
+        <div class="tm-activity-section-header">
+            <h2 class="tm-activity-section-title">Past</h2>
+            <div class="tm-activity-filters">
+                <a asp-controller="Passenger" asp-action="Activity" class="tm-filter-link @(ViewBag.Filter == null || ViewBag.Filter == "" ? "is-active" : "")">All</a>
+                <a asp-controller="Passenger" asp-action="Activity" asp-route-filter="completed" class="tm-filter-link @(ViewBag.Filter == "completed" ? "is-active" : "")">Completed</a>
+                <a asp-controller="Passenger" asp-action="Activity" asp-route-filter="cancelled" class="tm-filter-link @(ViewBag.Filter == "cancelled" ? "is-active" : "")">Cancelled</a>
+            </div>
+        </div>
+
+        @if (Model.PastRides.Count == 0)
+        {
+            <div class="tm-activity-empty">
+                <div class="tm-empty-icon">↗</div>
+                <h3>No past rides</h3>
+                <p>Your completed and cancelled rides will appear here.</p>
+            </div>
+        }
+        else
+        {
+            // Feature a completed ride first, or the first ride if none completed
+            var featured = Model.PastRides.FirstOrDefault(r => r.Status == RideStatus.Completed) ?? Model.PastRides.FirstOrDefault();
+            var older = Model.PastRides.Where(r => r.Id != featured?.Id).ToList();
+
+            @if (featured != null)
+            {
+                var isVoid = featured.Status == RideStatus.Cancelled || featured.Status == RideStatus.NoDriverAvailable;
+                var statusText = featured.Status == RideStatus.Cancelled ? "Cancelled" : featured.Status == RideStatus.NoDriverAvailable ? "No driver" : "";
+
+                <div class="tm-activity-featured">
+                    <a asp-controller="Passenger" asp-action="Details" asp-route-id="@featured.Id" class="tm-activity-featured-link"></a>
+
+                    <div class="tm-activity-featured-map">
+                        <div id="featured-map" class="tm-map" style="height: 200px; z-index: 0;"></div>
+                    </div>
+
+                    <div class="tm-activity-featured-content">
+                        <div class="tm-activity-info">
+                            <strong>@featured.DestinationZone</strong>
+                            <span>@featured.PickupZone → @featured.DestinationZone</span>
+                            <span>@featured.CreatedAt.ToLocalTime().ToString("MMM d '•' h:mm tt", System.Globalization.CultureInfo.InvariantCulture)</span>
+                        </div>
+
+                        <div class="tm-activity-actions">
+                            <div class="tm-activity-fare @(isVoid ? "tm-fare-void" : "")">
+                                <span class="tm-taka">৳</span><span class="tm-fare-amount">@featured.FinalFare.ToString("N2")</span>
+                                @if (isVoid)
+                                {
+                                    <span class="tm-status tm-status-cancelled">@statusText</span>
+                                }
+                            </div>
+
+                            <a asp-controller="Passenger" asp-action="Book"
+                               asp-route-pickupZone="@featured.PickupZone"
+                               asp-route-destinationZone="@featured.DestinationZone"
+                               asp-route-seats="@featured.Seats"
+                               asp-route-rideType="@(featured.IsSharedPool ? "SharedPool" : "Private")"
+                               class="tm-rebook">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 4v6h-6"></path>
+                                    <path d="M1 20v-6h6"></path>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                                <span>Rebook</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (older.Any())
+            {
+                var grouped = older.GroupBy(r => r.CreatedAt.ToLocalTime().ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture));
+
+                <div class="tm-activity-list">
+                    @foreach (var group in grouped)
+                    {
+                        <h3 class="tm-activity-month">@group.Key</h3>
+
+                        @foreach (var ride in group)
+                        {
+                            var isVoid = ride.Status == RideStatus.Cancelled || ride.Status == RideStatus.NoDriverAvailable;
+                            var statusText = ride.Status == RideStatus.Cancelled ? "Cancelled" : ride.Status == RideStatus.NoDriverAvailable ? "No driver" : "";
+
+                            <div class="tm-activity-row @(isVoid ? "is-void" : "")">
+                                <a asp-controller="Passenger" asp-action="Details" asp-route-id="@ride.Id" class="tm-activity-row-link"></a>
+
+                                <div class="tm-activity-thumb">
+                                    @if (ride.IsSharedPool)
+                                    {
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="1" y="3" width="15" height="13"></rect>
+                                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                        </svg>
+                                    }
+                                </div>
+
+                                <div class="tm-activity-info">
+                                    <strong>@ride.DestinationZone</strong>
+                                    <span>@ride.CreatedAt.ToLocalTime().ToString("MMM d '•' h:mm tt", System.Globalization.CultureInfo.InvariantCulture)</span>
+                                    <span>@ride.PickupZone → @ride.DestinationZone</span>
+                                </div>
+
+                                <div class="tm-activity-fare @(isVoid ? "tm-fare-void" : "")">
+                                    <span class="tm-taka">৳</span><span class="tm-fare-amount">@ride.FinalFare.ToString("N2")</span>
+                                    @if (isVoid)
+                                    {
+                                        <span class="tm-status tm-status-cancelled">@statusText</span>
+                                    }
+                                </div>
+
+                                <a asp-controller="Passenger" asp-action="Book"
+                                   asp-route-pickupZone="@ride.PickupZone"
+                                   asp-route-destinationZone="@ride.DestinationZone"
+                                   asp-route-seats="@ride.Seats"
+                                   asp-route-rideType="@(ride.IsSharedPool ? "SharedPool" : "Private")"
+                                   class="tm-rebook">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M23 4v6h-6"></path>
+                                        <path d="M1 20v-6h6"></path>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                    <span>Rebook</span>
+                                </a>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+
+            @if (Model.HasMorePastRides)
+            {
+                <div class="tm-activity-show-more">
+                    <a asp-controller="Passenger" asp-action="Activity" asp-route-page="@(ViewContext.RouteData.Values["page"] != null ? Convert.ToInt32(ViewContext.RouteData.Values["page"]) + 1 : 2)" class="tm-btn tm-btn-outline">
+                        Show more
+                    </a>
+                </div>
+            }
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/tm-map.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const zoneCoordinates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                Model.ZoneCoordinates,
+                new System.Text.Json.JsonSerializerOptions {
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                }));
+
+            function pointOf(zone) {
+                if (!zone) return null;
+                const key = Object.keys(zoneCoordinates)
+                    .find(k => k.toLowerCase() === zone.toLowerCase());
+                const p = key ? zoneCoordinates[key] : null;
+                if (!p) return null;
+
+                const lat = Number(p.lat ?? p.Lat);
+                const lng = Number(p.lng ?? p.Lng);
+                return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+            }
+
+            // Initialize active ride maps
+            @foreach (var ride in Model.ActiveRides)
+            {
+                <text>
+                (function() {
+                    const mapId = 'active-map-@ride.Id';
+                    const pickup = pointOf('@ride.PickupZone');
+                    const destination = pointOf('@ride.DestinationZone');
+                    const vehicleZone = pointOf('@ride.VehicleCurrentZone');
+                    const mapElement = document.getElementById(mapId);
+
+                    if (pickup && destination && mapElement) {
+                        const map = TeslaMAMA.Map.init(mapId);
+                        TeslaMAMA.Map.setRoute(map,
+                            { name: '@ride.PickupZone', lat: pickup.lat, lng: pickup.lng },
+                            { name: '@ride.DestinationZone', lat: destination.lat, lng: destination.lng },
+                            { labels: true });
+
+                        // Add vehicle marker if available and ride is matched/arrived/started
+                        @if (!string.IsNullOrWhiteSpace(ride.VehicleCurrentZone) &&
+                             (ride.Status == RideStatus.Matched || ride.Status == RideStatus.DriverArrived || ride.Status == RideStatus.Started))
+                        {
+                            <text>
+                        if (vehicleZone) {
+                            const vehicleMarker = L.circleMarker([vehicleZone.lat, vehicleZone.lng], {
+                                radius: 9,
+                                weight: 3,
+                                color: '#1a6e55',
+                                fillColor: '#1a6e55',
+                                fillOpacity: 1
+                            }).bindTooltip('Driver', {
+                                permanent: true,
+                                direction: 'top',
+                                offset: [0, -10],
+                                className: 'tm-map-label'
+                            }).addTo(map);
+                        }
+                        </text>
+                        }
+                    } else if (mapElement) {
+                        mapElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--tm-muted);font-size:0.9rem;font-weight:600;">Route preview unavailable</div>';
+                    }
+                })();
+                </text>
+            }
+
+            // Initialize featured past ride map
+            @if (Model.PastRides.Count > 0)
+            {
+                var featured = Model.PastRides.FirstOrDefault(r => r.Status == RideStatus.Completed) ?? Model.PastRides.FirstOrDefault();
+                if (featured != null)
+                {
+                    <text>
+                    (function() {
+                        const mapId = 'featured-map';
+                        const pickup = pointOf('@featured.PickupZone');
+                        const destination = pointOf('@featured.DestinationZone');
+                        const mapElement = document.getElementById(mapId);
+
+                        if (pickup && destination && mapElement) {
+                            const map = TeslaMAMA.Map.init(mapId, { interactive: false });
+                            TeslaMAMA.Map.setRoute(map,
+                                { name: '@featured.PickupZone', lat: pickup.lat, lng: pickup.lng },
+                                { name: '@featured.DestinationZone', lat: destination.lat, lng: destination.lng },
+                                { labels: false, padding: [30, 30] });
+                        } else if (mapElement) {
+                            mapElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--tm-muted);font-size:0.9rem;font-weight:600;">Route preview unavailable</div>';
+                        }
+                    })();
+                    </text>
+                }
+            }
+
+            // Timer for Requested rides
+            const TIMER_DURATION = 60;
+            const WARNING_THRESHOLD = 30;
+            const CRITICAL_THRESHOLD = 10;
+            const timerTimes = document.querySelectorAll('.tm-progress-bar-time');
+            const notifiedRides = new Set();
+            const intervals = new Map();
+
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            function updateTimer(timeElement) {
+                const container = timeElement.closest('.tm-progress-bar-container');
+                const fill = container.querySelector('.tm-progress-bar-fill');
+                const title = container.querySelector('.tm-progress-bar-title');
+                const createdAt = new Date(timeElement.dataset.createdAt);
+                const rideId = timeElement.dataset.rideId;
+                const elapsed = (Date.now() - createdAt.getTime()) / 1000;
+                const remaining = Math.max(0, TIMER_DURATION - elapsed);
+                const percentage = (remaining / TIMER_DURATION) * 100;
+
+                // Update time display
+                timeElement.textContent = formatTime(remaining);
+
+                // Update fill width
+                fill.style.width = percentage + '%';
+                fill.setAttribute('aria-valuenow', Math.round(remaining));
+
+                // Update fill colour
+                if (remaining <= CRITICAL_THRESHOLD) {
+                    fill.style.backgroundColor = '#ef5b4c';
+                } else if (remaining <= WARNING_THRESHOLD) {
+                    fill.style.backgroundColor = '#f5b83d';
+                } else {
+                    fill.style.backgroundColor = 'var(--tm-green)';
+                }
+
+                // At 0 seconds
+                if (remaining <= 0) {
+                    title.textContent = 'Still searching…';
+                    fill.style.width = '0%';
+                    fill.setAttribute('aria-valuenow', '0');
+
+                    if (!notifiedRides.has(rideId)) {
+                        notifiedRides.add(rideId);
+                        if (typeof showNotification === 'function') {
+                            showNotification(
+                                'Taking longer than expected',
+                                'Sorry for the wait. It seems no drivers are available in your area right now. Please try a different pickup zone or cancel and try again later.',
+                                'error'
+                            );
+                        }
+                    }
+
+                    const intervalId = intervals.get(rideId);
+                    if (intervalId) {
+                        clearInterval(intervalId);
+                        intervals.delete(rideId);
+                    }
+                }
+            }
+
+            if (timerTimes.length > 0) {
+                timerTimes.forEach(time => {
+                    updateTimer(time);
+                    const rideId = time.dataset.rideId;
+                    const intervalId = setInterval(() => updateTimer(time), 1000);
+                    intervals.set(rideId, intervalId);
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                intervals.forEach(intervalId => clearInterval(intervalId));
+            });
+        });
+    </script>
+}

@@ -11,6 +11,9 @@
           href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
     <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@700&display=swap" />
+
+    <link rel="stylesheet"
           href="~/css/site.css"
           asp-append-version="true" />
 
@@ -55,8 +58,11 @@
                         @if (User.IsInRole("Passenger"))
                         {
                             var action = ViewContext.RouteData.Values["action"]?.ToString();
-                            <a class="tm-nav-link @(action == "Dashboard" ? "is-active" : "")"
-                               asp-controller="Passenger" asp-action="Dashboard">Dashboard</a>
+                            <a class="tm-nav-link @(action == "Overview" ? "is-active" : "")"
+                               asp-controller="Passenger" asp-action="Overview">Overview</a>
+
+                            <a class="tm-nav-link @(action == "Activity" ? "is-active" : "")"
+                               asp-controller="Passenger" asp-action="Activity">Activity</a>
 
                             <a class="tm-nav-link @(action == "Book" ? "is-active" : "")"
                                asp-controller="Passenger" asp-action="Book">Book a ride</a>
