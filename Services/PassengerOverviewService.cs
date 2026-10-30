@@ -220,6 +220,23 @@ public class PassengerOverviewService : IPassengerOverviewService
             weekdayCounts.Add(new WeekdayCountItem { Label = day.Substring(0, 3), Count = count });
         }
 
+        // Recent rides (last 3 completed or cancelled rides)
+        var recentRides = rides
+            .Where(r => r.Status == RideStatus.Completed || r.Status == RideStatus.Cancelled || r.Status == RideStatus.NoDriverAvailable)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(3)
+            .Select(r => new RecentRideItem
+            {
+                Id = r.Id,
+                PickupZone = r.PickupZone,
+                DestinationZone = r.DestinationZone,
+                Status = r.Status == RideStatus.Completed ? "completed" : r.Status == RideStatus.Cancelled ? "cancelled" : "nodriveravailable",
+                FinalFare = r.FinalFare,
+                CreatedAt = r.CreatedAt,
+                IsSharedPool = r.RideType == RideType.SharedPool
+            })
+            .ToList();
+
         // Set range label
         var rangeLabel = range switch
         {
@@ -250,6 +267,7 @@ public class PassengerOverviewService : IPassengerOverviewService
             TopRoutes = topRoutes,
             PaymentMethodCounts = paymentMethodCounts,
             WeekdayCounts = weekdayCounts,
+            RecentRides = recentRides,
             ActiveRide = activeRide
         };
     }
