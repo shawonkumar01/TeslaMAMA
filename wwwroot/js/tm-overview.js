@@ -1,10 +1,41 @@
 window.TeslaMAMA = window.TeslaMAMA || {};
 
 TeslaMAMA.Overview = (function () {
+    const STATUS_LABELS = {
+        Completed: "Completed",
+        Cancelled: "Cancelled",
+        NoDriverAvailable: "No driver found",
+        Requested: "Requested",
+        Matched: "Matched",
+        DriverArrived: "Driver arrived",
+        Started: "In progress",
+        WaitingForPayment: "Awaiting payment"
+    };
+
+    const PAYMENT_LABELS = {
+        Cash: "Cash",
+        Card: "Card",
+        MobileBanking: "Mobile banking"
+    };
+
+    // green = good, grey = passive, amber = attention, blue = in progress
+    const STATUS_COLORS = {
+        Completed: "#1a6e55",
+        Cancelled: "#9aa8a1",
+        NoDriverAvailable: "#f5b83d",
+        Requested: "#2b5a9c",
+        Matched: "#2b5a9c",
+        DriverArrived: "#2b5a9c",
+        Started: "#2b5a9c",
+        WaitingForPayment: "#2b5a9c"
+    };
+
     const COLORS = ['#1a6e55', '#a9e5cb', '#2b5a9c', '#f5b83d', '#ef5b4c', '#5f7169'];
-    const GRID_COLOR = '#dbe5df';
-    const FONT_FAMILY = 'Inter, "Segoe UI", system-ui, Arial, sans-serif';
+    const GRID_COLOR = '#e6eee9';
+    const FONT_FAMILY = '"Inter", "Noto Sans Bengali", "Nirmala UI", "Segoe UI", system-ui, sans-serif';
     const formatter = new Intl.NumberFormat('en-BD');
+
+    const pretty = (key, map) => map[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2");
 
     function formatCurrency(value) {
         return '৳' + formatter.format(value);
@@ -15,22 +46,32 @@ TeslaMAMA.Overview = (function () {
         id: 'centreText',
         beforeDraw: function (chart) {
             if (chart.config.type !== 'doughnut') return;
-            
+
             const width = chart.width;
             const height = chart.height;
             const ctx = chart.ctx;
-            
+
             ctx.restore();
             const fontSize = (height / 114).toFixed(2);
             ctx.font = `bold ${fontSize}em ${FONT_FAMILY}`;
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#1b2b26';
-            
+
             const text = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
             const textX = Math.round((width - ctx.measureText(text).width) / 2);
-            const textY = height / 2;
-            
+            const textY = height / 2 - 8;
+
             ctx.fillText(text, textX, textY);
+
+            // Add "rides" label below
+            const labelFontSize = (height / 280).toFixed(2);
+            ctx.font = `${labelFontSize}em ${FONT_FAMILY}`;
+            ctx.fillStyle = '#5f7169';
+            const labelText = 'rides';
+            const labelX = Math.round((width - ctx.measureText(labelText).width) / 2);
+            const labelY = height / 2 + 12;
+
+            ctx.fillText(labelText, labelX, labelY);
             ctx.save();
         }
     };
@@ -75,6 +116,10 @@ TeslaMAMA.Overview = (function () {
     function init(data) {
         if (!data || data.totalRides === 0) return;
 
+        // Set Chart.js defaults with Bengali font support
+        Chart.defaults.font.family = FONT_FAMILY;
+        Chart.defaults.color = "#5f7169";
+
         // Spending chart
         if (data.monthlySpending && data.monthlySpending.length > 0) {
             createChart('spendingChart', {
@@ -85,27 +130,29 @@ TeslaMAMA.Overview = (function () {
                         label: 'Spending',
                         data: data.monthlySpending.map(x => x.amount),
                         backgroundColor: COLORS[0],
-                        borderRadius: 6
+                        borderRadius: 8,
+                        maxBarThickness: 44
                     }]
                 },
                 options: {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: GRID_COLOR },
                             ticks: {
+                                maxTicksLimit: 5,
                                 callback: function(value) {
                                     return formatCurrency(value);
-                                },
-                                font: { family: FONT_FAMILY }
-                            }
+                                }
+                            },
+                            grid: { color: GRID_COLOR },
+                            border: { display: false }
                         },
                         x: {
-                            grid: { display: false },
-                            ticks: { font: { family: FONT_FAMILY } }
+                            grid: { display: false }
                         }
                     },
                     plugins: {
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -124,34 +171,28 @@ TeslaMAMA.Overview = (function () {
             createChart('statusChart', {
                 type: 'doughnut',
                 data: {
-                    labels: data.statusCounts.map(x => x.label),
+                    labels: data.statusCounts.map(x => pretty(x.label, STATUS_LABELS)),
                     datasets: [{
                         data: data.statusCounts.map(x => x.count),
-                        backgroundColor: COLORS.slice(0, data.statusCounts.length),
+                        backgroundColor: data.statusCounts.map(x => STATUS_COLORS[x.label] || COLORS[0]),
                         borderWidth: 0
                     }]
                 },
                 options: {
+                    cutout: "72%",
                     plugins: {
-                        centreText: true
+                        centreText: true,
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = data.statusCounts[context.dataIndex];
+                                    return `${pretty(item.label, STATUS_LABELS)}: ${item.count} rides`;
+                                }
+                            }
+                        }
                     }
                 },
                 plugins: [centreTextPlugin]
-            });
-        }
-
-        // Ride type chart
-        if (data.rideTypeCounts && data.rideTypeCounts.length > 0) {
-            createChart('rideTypeChart', {
-                type: 'pie',
-                data: {
-                    labels: data.rideTypeCounts.map(x => x.label),
-                    datasets: [{
-                        data: data.rideTypeCounts.map(x => x.count),
-                        backgroundColor: COLORS.slice(0, 2),
-                        borderWidth: 0
-                    }]
-                }
             });
         }
 
@@ -200,7 +241,7 @@ TeslaMAMA.Overview = (function () {
             createChart('paymentChart', {
                 type: 'doughnut',
                 data: {
-                    labels: data.paymentMethodCounts.map(x => x.label),
+                    labels: data.paymentMethodCounts.map(x => pretty(x.label, PAYMENT_LABELS)),
                     datasets: [{
                         data: data.paymentMethodCounts.map(x => x.count),
                         backgroundColor: COLORS.slice(0, data.paymentMethodCounts.length),
@@ -208,8 +249,17 @@ TeslaMAMA.Overview = (function () {
                     }]
                 },
                 options: {
+                    cutout: "72%",
                     plugins: {
-                        centreText: true
+                        centreText: true,
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const item = data.paymentMethodCounts[context.dataIndex];
+                                    return `${pretty(item.label, PAYMENT_LABELS)}: ${item.count} rides`;
+                                }
+                            }
+                        }
                     }
                 },
                 plugins: [centreTextPlugin]

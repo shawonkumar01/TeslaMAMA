@@ -23,6 +23,7 @@ public class PassengerOverviewViewModel
     public List<TopRouteItem> TopRoutes { get; set; } = new();
     public List<PaymentMethodCountItem> PaymentMethodCounts { get; set; } = new();
     public List<WeekdayCountItem> WeekdayCounts { get; set; } = new();
+    public List<RecentRideItem> RecentRides { get; set; } = new();
 
     public ActiveRideSummary? ActiveRide { get; set; }
 }
@@ -63,6 +64,17 @@ public class WeekdayCountItem
 {
     public string Label { get; set; } = string.Empty;
     public int Count { get; set; }
+}
+
+public class RecentRideItem
+{
+    public int Id { get; set; }
+    public string PickupZone { get; set; } = string.Empty;
+    public string DestinationZone { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal? FinalFare { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public bool IsSharedPool { get; set; }
 }
 
 public class ActiveRideSummary
