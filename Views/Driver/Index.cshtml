@@ -574,7 +574,32 @@
 </section>
 
 @section Scripts {
+    <script src="~/js/signalr.js"></script>
+
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize SignalR
+            const userId = '@User.Identity?.Name';
+            initializeSignalR(userId, 'Driver');
+
+            // Listen for new ride offers
+            onNewOffer(function(data) {
+                console.log('New offer received:', data);
+                // Show notification
+                if (typeof showNotification === 'function') {
+                    showNotification('New Ride Offer', `Ride request from ${data.pickupZone} to ${data.destinationZone}`, 'info');
+                }
+                // Reload page to show new offer
+                setTimeout(function() {
+                    location.reload();
+                }, 2000);
+            });
+
+            window.addEventListener('beforeunload', () => {
+                cleanupSignalR(userId, 'Driver');
+            });
+        });
+
         // Countdown timer for driver offers
         function updateCountdowns() {
             document.querySelectorAll('.tm-countdown').forEach(element => {

@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using TeslaMAMA.Data;
+using TeslaMAMA.Hubs;
 using TeslaMAMA.Models;
 
 namespace TeslaMAMA.Services;
@@ -10,13 +12,16 @@ public class RideOfferTimeoutService : BackgroundService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RideOfferTimeoutService> _logger;
+    private readonly IHubContext<RideHub> _hubContext;
 
     public RideOfferTimeoutService(
         IServiceScopeFactory scopeFactory,
-        ILogger<RideOfferTimeoutService> logger)
+        ILogger<RideOfferTimeoutService> logger,
+        IHubContext<RideHub> hubContext)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     protected override async Task ExecuteAsync(
@@ -113,7 +118,20 @@ public class RideOfferTimeoutService : BackgroundService
         }
 
         if (failedRides.Count > 0)
+        {
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            // Notify passengers of failed rides via SignalR
+            foreach (var ride in failedRides)
+            {
+                await _hubContext.Clients.Group($"passenger_{ride.PassengerId}")
+                    .SendAsync("RideStatusChanged", new
+                    {
+                        rideId = ride.Id,
+                        status = ride.Status.ToString()
+                    });
+            }
+        }
 
         var rideIds = await dbContext.RideRequests
             .Where(r =>

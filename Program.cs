@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TeslaMAMA.Data;
+using TeslaMAMA.Hubs;
 using TeslaMAMA.Models;
 using TeslaMAMA.Services;
 
@@ -9,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // MVC
 builder.Services.AddControllersWithViews();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // PostgreSQL database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -81,5 +85,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapHub<RideHub>("/ridehub");
 
 app.Run();
