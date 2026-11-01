@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using TeslaMAMA.Data;
+using TeslaMAMA.Hubs;
 using TeslaMAMA.Models;
 
 namespace TeslaMAMA.Services;
@@ -7,10 +9,14 @@ namespace TeslaMAMA.Services;
 public class DriverAssignmentService : IDriverAssignmentService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IHubContext<RideHub> _hubContext;
 
-    public DriverAssignmentService(AppDbContext dbContext)
+    public DriverAssignmentService(
+        AppDbContext dbContext,
+        IHubContext<RideHub> hubContext)
     {
         _dbContext = dbContext;
+        _hubContext = hubContext;
     }
 
     public async Task<DriverOffer?> OfferRideAsync(
@@ -233,6 +239,19 @@ public class DriverAssignmentService : IDriverAssignmentService
 
             _dbContext.DriverOffers.Add(offer);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Notify driver via SignalR
+            await _hubContext.Clients.Group($"driver_{vehicle.DriverId}")
+                .SendAsync("NewOffer", new
+                {
+                    offerId = offer.Id,
+                    rideId = ride.Id,
+                    pickupZone = ride.PickupZone,
+                    destinationZone = ride.DestinationZone,
+                    seats = ride.Seats,
+                    fare = ride.FinalFare,
+                    expiresAt = offer.ExpiresAt
+                });
 
             return offer;
         }

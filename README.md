@@ -8,18 +8,21 @@ A modern ride-sharing application built with ASP.NET Core, featuring real-time d
 - **Ride Booking**: Book rides with pickup and destination zones
 - **Shared Pool**: Cost-effective rides with other passengers
 - **Real-time Tracking**: Track your ride with live map integration
+- **Real-time Notifications**: Instant updates when ride status changes
 - **Activity Dashboard**: View ride history with detailed timeline
 - **Payment History**: Complete payment transaction management
 - **Refund Requests**: Request refunds for completed payments
 
 ### For Drivers
 - **Live Offers**: Receive real-time ride requests
+- **Real-time Notifications**: Instant alerts for new ride offers
 - **Countdown Timers**: Time-sensitive offer acceptance
 - **Ride Management**: Complete rides and update status
 - **Earnings Tracking**: View completed rides and earnings
 
 ### System Features
 - **Smart Pool Matching**: Route-based matching with detour limits
+- **Real-time Communication**: SignalR for instant WebSocket notifications
 - **Road Distance Calculation**: OSRM integration for accurate distances
 - **Fare Calculation**: Fixed fare system with pool discounts
 - **Multi-zone Support**: Zone-based pickup and destination system
@@ -31,6 +34,7 @@ A modern ride-sharing application built with ASP.NET Core, featuring real-time d
 - **Frontend**: Razor Pages with CSS
 - **Database**: SQL Server with Entity Framework Core
 - **Authentication**: ASP.NET Core Identity
+- **Real-time**: SignalR for WebSocket notifications
 - **Maps**: Leaflet.js with OSRM routing
 - **Charts**: Chart.js for data visualization
 
@@ -88,6 +92,8 @@ TeslaMAMA/
 ├── Data/                # Database context and entities
 │   ├── AppDbContext.cs
 │   └── Entities/
+├── Hubs/                # SignalR hubs for real-time communication
+│   └── RideHub.cs
 ├── Models/              # View models and DTOs
 ├── Services/            # Business logic services
 │   ├── DriverAssignmentService.cs
@@ -100,11 +106,20 @@ TeslaMAMA/
 ├── wwwroot/             # Static assets
 │   ├── css/
 │   ├── js/
+│   │   └── signalr.js  # SignalR client connection management
 │   └── images/
 └── Migrations/          # Database migrations
 ```
 
 ## Key Features Explained
+
+### Real-time Notifications (SignalR)
+- WebSocket-based instant notifications for passengers and drivers
+- Passengers receive live updates when ride status changes (matched, driver arrived, started, waiting for payment)
+- Drivers receive instant alerts when new ride offers are assigned
+- Automatic reconnection handling for dropped connections
+- Eliminates need for manual page refreshes
+- Group-based messaging for targeted notifications
 
 ### Ride Matching System
 - Drivers receive offers based on their current zone
@@ -125,6 +140,12 @@ TeslaMAMA/
 - Complete payment history tracking
 
 ## Configuration
+
+### SignalR
+- Hub endpoint: `/ridehub`
+- Automatic reconnection enabled
+- Group-based messaging for drivers and passengers
+- WebSocket protocol for real-time communication
 
 ### Fare Calculation
 - Base fare + distance-based fare calculation

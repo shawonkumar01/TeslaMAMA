@@ -343,9 +343,22 @@
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="~/js/tm-map.js" asp-append-version="true"></script>
+    <script src="~/js/signalr.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize SignalR
+            const userId = '@User.Identity?.Name';
+            initializeSignalR(userId, 'Passenger');
+
+            // Listen for ride status changes
+            onRideStatusChanged(function(data) {
+                console.log('Ride status changed:', data);
+                // Reload page to show updated status
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            });
             const zoneCoordinates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
                 Model.ZoneCoordinates,
                 new System.Text.Json.JsonSerializerOptions {
@@ -513,6 +526,7 @@
 
             window.addEventListener('beforeunload', () => {
                 intervals.forEach(intervalId => clearInterval(intervalId));
+                cleanupSignalR(userId, 'Passenger');
             });
         });
     </script>
