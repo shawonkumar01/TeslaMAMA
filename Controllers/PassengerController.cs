@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TeslaMAMA.Data;
+using TeslaMAMA.Hubs;
 using TeslaMAMA.Models;
 using TeslaMAMA.Services;
 
@@ -18,6 +20,7 @@ public class PassengerController : Controller
     private readonly IDriverAssignmentService _assignmentService;
     private readonly RoadDistanceStore _roadDistanceStore;
     private readonly IPassengerOverviewService _overviewService;
+    private readonly IHubContext<RideHub> _hubContext;
 
     public PassengerController(
         AppDbContext dbContext,
@@ -25,7 +28,8 @@ public class PassengerController : Controller
         IFareCalculationService fareCalculator,
         IDriverAssignmentService assignmentService,
         RoadDistanceStore roadDistanceStore,
-        IPassengerOverviewService overviewService)
+        IPassengerOverviewService overviewService,
+        IHubContext<RideHub> hubContext)
     {
         _dbContext = dbContext;
         _userManager = userManager;
@@ -33,6 +37,7 @@ public class PassengerController : Controller
         _assignmentService = assignmentService;
         _roadDistanceStore = roadDistanceStore;
         _overviewService = overviewService;
+        _hubContext = hubContext;
     }
 
     // GET: /Passenger/Overview
@@ -393,6 +398,17 @@ public class PassengerController : Controller
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
+
+        // Notify passenger via SignalR
+        await _hubContext.Clients.Group($"passenger_{passenger.Id}")
+            .SendAsync("RideCreated", new
+            {
+                rideId = ride.Id,
+                status = ride.Status.ToString(),
+                pickupZone = ride.PickupZone,
+                destinationZone = ride.DestinationZone,
+                fare = ride.FinalFare
+            });
 
         // Driver assignment will be updated separately to enforce
         // the different rules for SharedPool and Private rides.

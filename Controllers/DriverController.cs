@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TeslaMAMA.Data;
+using TeslaMAMA.Hubs;
 using TeslaMAMA.Models;
 using TeslaMAMA.Services;
 
@@ -16,17 +18,20 @@ public class DriverController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFareCalculationService _fareCalculator;
     private readonly IDriverAssignmentService _assignmentService;
+    private readonly IHubContext<RideHub> _hubContext;
 
     public DriverController(
         AppDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         IFareCalculationService fareCalculator,
-        IDriverAssignmentService assignmentService)
+        IDriverAssignmentService assignmentService,
+        IHubContext<RideHub> hubContext)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _fareCalculator = fareCalculator;
         _assignmentService = assignmentService;
+        _hubContext = hubContext;
     }
 
     // GET: /Driver
@@ -451,6 +456,16 @@ public class DriverController : Controller
         offer.Status = DriverOfferStatus.Accepted;
         offer.RespondedAt = now;
 
+        // Notify passenger via SignalR
+        await _hubContext.Clients.Group($"passenger_{ride.PassengerId}")
+            .SendAsync("RideStatusChanged", new
+            {
+                rideId = ride.Id,
+                status = ride.Status.ToString(),
+                driverName = vehicle.Driver?.FullName,
+                vehicleName = vehicle.Name
+            });
+
         _dbContext.RideStatusHistory.Add(new RideStatusHistory
         {
             RideRequestId = ride.Id,
@@ -646,6 +661,19 @@ public class DriverController : Controller
         await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        // Notify all passengers in the pool via SignalR
+        foreach (var ride in matchedRides)
+        {
+            await _hubContext.Clients.Group($"passenger_{ride.PassengerId}")
+                .SendAsync("RideStatusChanged", new
+                {
+                    rideId = ride.Id,
+                    status = ride.Status.ToString(),
+                    driverName = vehicle.Driver?.FullName,
+                    vehicleName = vehicle.Name
+                });
+        }
+
         TempData["SuccessMessage"] =
             $"Pool #{poolId} marked as arrived. All passengers have been notified.";
 
@@ -721,6 +749,19 @@ public class DriverController : Controller
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        // Notify all passengers in the pool via SignalR
+        foreach (var ride in arrivedRides)
+        {
+            await _hubContext.Clients.Group($"passenger_{ride.PassengerId}")
+                .SendAsync("RideStatusChanged", new
+                {
+                    rideId = ride.Id,
+                    status = ride.Status.ToString(),
+                    driverName = vehicle.Driver?.FullName,
+                    vehicleName = vehicle.Name
+                });
+        }
 
         TempData["SuccessMessage"] =
             $"Pool #{poolId} trip started. Heading to destinations.";
@@ -813,6 +854,16 @@ public class DriverController : Controller
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        // Notify passenger via SignalR
+        await _hubContext.Clients.Group($"passenger_{ride.PassengerId}")
+            .SendAsync("RideStatusChanged", new
+            {
+                rideId = ride.Id,
+                status = ride.Status.ToString(),
+                driverName = vehicle.Driver?.FullName,
+                vehicleName = vehicle.Name
+            });
 
         TempData["SuccessMessage"] =
             $"Passenger dropped off at {ride.DestinationZone}. Waiting for payment.";
