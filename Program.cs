@@ -36,14 +36,14 @@ builder.Services.AddSingleton<RoadDistanceStore>();
 builder.Services.AddHostedService<RoadDistanceSeeder>();
 
 var app = builder.Build();
-//await DbSeeder.SeedAsync(app.Services);
+await DbSeeder.SeedAsync(app.Services);
 // Ensure required Identity roles exist without creating demo users or vehicles.
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider
         .GetRequiredService<RoleManager<IdentityRole>>();
 
-    string[] roles = { "Passenger", "Driver" };
+    string[] roles = { "Passenger", "Driver", "Admin" };
 
     foreach (var role in roles)
     {

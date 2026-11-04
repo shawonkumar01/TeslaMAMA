@@ -78,6 +78,25 @@
                                asp-controller="Driver" asp-action="Index">Dashboard</a>
                         }
 
+                        @if (User.IsInRole("Admin"))
+                        {
+                            var action = ViewContext.RouteData.Values["action"]?.ToString();
+                            <a class="tm-nav-link @(action == "Index" ? "is-active" : "")"
+                               asp-controller="Admin" asp-action="Index">Dashboard</a>
+
+                            <a class="tm-nav-link @(action == "Users" ? "is-active" : "")"
+                               asp-controller="Admin" asp-action="Users">Users</a>
+
+                            <a class="tm-nav-link @(action == "Rides" ? "is-active" : "")"
+                               asp-controller="Admin" asp-action="Rides">Rides</a>
+
+                            <a class="tm-nav-link @(action == "Payments" ? "is-active" : "")"
+                               asp-controller="Admin" asp-action="Payments">Payments</a>
+
+                            <a class="tm-nav-link @(action == "Vehicles" ? "is-active" : "")"
+                               asp-controller="Admin" asp-action="Vehicles">Vehicles</a>
+                        }
+
                         <div class="tm-nav-auth">
                             <span class="tm-user-chip">
                                 <span class="tm-avatar">@initial</span>@shortName
