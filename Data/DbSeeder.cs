@@ -49,6 +49,9 @@ public static class DbSeeder
         var shirin = await GetOrCreateUser(
             userManager, "Shirin", "shirin@example.com", UserRole.Passenger);
 
+        var admin = await GetOrCreateUser(
+            userManager, "Admin", "admin@teslamama.com", UserRole.Admin);
+
         var bullet = await GetOrCreateVehicle(db, jashim, "Bullet");
         var rocket = await GetOrCreateVehicle(db, kamal, "Rocket");
 

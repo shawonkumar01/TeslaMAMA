@@ -1,0 +1,153 @@
+@model TeslaMAMA.Models.AdminRideDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Ride #{Model.Id} Details";
+}
+
+<section class="tm-dashboard">
+    <!-- Header -->
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">ADMIN</p>
+            <h1>Ride #@Model.Id Details</h1>
+            <p>Complete ride information and history</p>
+        </div>
+        <a asp-action="Rides" class="tm-btn tm-btn-secondary">Back to Rides</a>
+    </div>
+
+    <!-- Ride Info Cards -->
+    <div class="tm-info-cards">
+        <div class="tm-info-card">
+            <h3>Passenger</h3>
+            <p class="tm-info-value">@Model.PassengerName</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Driver</h3>
+            <p class="tm-info-value">@Model.DriverName ?? "Unassigned"</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Vehicle</h3>
+            <p class="tm-info-value">@Model.VehicleName ?? "N/A"</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Status</h3>
+            <p class="tm-info-value">
+                <span class="tm-status-badge tm-status-@Model.Status.ToString().ToLower()">
+                    @Model.Status
+                </span>
+            </p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Route</h3>
+            <p class="tm-info-value">@Model.PickupZone → @Model.DestinationZone</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Fare</h3>
+            <p class="tm-info-value"><span class="tm-taka">৳</span>@Model.Fare.ToString("N2")</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Seats</h3>
+            <p class="tm-info-value">@Model.Seats</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Payment Method</h3>
+            <p class="tm-info-value">@Model.PaymentMethod</p>
+        </div>
+
+        <div class="tm-info-card">
+            <h3>Created</h3>
+            <p class="tm-info-value">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+        </div>
+    </div>
+
+    <!-- Status History -->
+    <div class="tm-admin-section">
+        <h2>Status History</h2>
+        @if (Model.StatusHistory.Any())
+        {
+            <div class="tm-timeline">
+                @foreach (var status in Model.StatusHistory.OrderBy(h => h.ChangedAt))
+                {
+                    <div class="tm-timeline-item">
+                        <div class="tm-timeline-marker"></div>
+                        <div class="tm-timeline-content">
+                            <div class="tm-timeline-status">@status.ToStatus</div>
+                            <div class="tm-timeline-time">@status.ChangedAt.ToString("MMM dd, yyyy HH:mm:ss")</div>
+                            @if (status.FromStatus.HasValue)
+                            {
+                                <div class="tm-timeline-previous">From: @status.FromStatus</div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="tm-empty-state">
+                <p>No status history available</p>
+            </div>
+        }
+    </div>
+
+    <!-- Payment Info -->
+    @if (Model.Payment != null)
+    {
+        <div class="tm-admin-section">
+            <h2>Payment Information</h2>
+            <div class="tm-info-cards">
+                <div class="tm-info-card">
+                    <h3>Payment ID</h3>
+                    <p class="tm-info-value">#@Model.Payment.Id</p>
+                </div>
+
+                <div class="tm-info-card">
+                    <h3>Amount</h3>
+                    <p class="tm-info-value"><span class="tm-taka">৳</span>@Model.Payment.Amount.ToString("N2")</p>
+                </div>
+
+                <div class="tm-info-card">
+                    <h3>Status</h3>
+                    <p class="tm-info-value">
+                        <span class="tm-status-badge tm-status-@Model.Payment.Status.ToString().ToLower()">
+                            @Model.Payment.Status
+                        </span>
+                    </p>
+                </div>
+
+                <div class="tm-info-card">
+                    <h3>Transaction ID</h3>
+                    <p class="tm-info-value">@Model.Payment.TransactionId</p>
+                </div>
+
+                <div class="tm-info-card">
+                    <h3>Created</h3>
+                    <p class="tm-info-value">@Model.Payment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+                </div>
+
+                @if (Model.Payment.CompletedAt.HasValue)
+                {
+                    <div class="tm-info-card">
+                        <h3>Completed</h3>
+                        <p class="tm-info-value">@Model.Payment.CompletedAt.Value.ToString("MMM dd, yyyy HH:mm")</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Payment.Notes))
+                {
+                    <div class="tm-info-card tm-info-card-full">
+                        <h3>Notes</h3>
+                        <p class="tm-info-value">@Model.Payment.Notes</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</section>

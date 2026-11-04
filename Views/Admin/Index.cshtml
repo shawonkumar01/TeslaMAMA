@@ -1,0 +1,169 @@
+@model TeslaMAMA.Models.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<section class="tm-dashboard">
+    <!-- Header -->
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">ADMIN</p>
+            <h1>Admin Dashboard</h1>
+            <p>Platform overview and management</p>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="tm-alert-success" role="status">
+            @successMessage
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="tm-alert-error" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <!-- Stats Grid -->
+    <div class="tm-stats-grid">
+        <div class="tm-stat-card">
+            <div class="tm-stat-value">@Model.TotalUsers</div>
+            <div class="tm-stat-label">Total Users</div>
+            <div class="tm-stat-detail">@Model.TotalPassengers passengers, @Model.TotalDrivers drivers</div>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-value">@Model.TotalRides</div>
+            <div class="tm-stat-label">Total Rides</div>
+            <div class="tm-stat-detail">@Model.CompletedRides completed, @Model.ActiveRides active</div>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-value"><span class="tm-taka">৳</span>@Model.TotalRevenue.ToString("N2")</div>
+            <div class="tm-stat-label">Total Revenue</div>
+            <div class="tm-stat-detail">From completed rides</div>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-value">@Model.PendingRefundsCount</div>
+            <div class="tm-stat-label">Pending Refunds</div>
+            <div class="tm-stat-detail"><a asp-action="Payments" asp-route-status="RefundRequested">Review requests</a></div>
+        </div>
+
+        <div class="tm-stat-card">
+            <div class="tm-stat-value">@Model.OnlineDrivers / @Model.TotalVehicles</div>
+            <div class="tm-stat-label">Online Drivers</div>
+            <div class="tm-stat-detail">Drivers currently accepting rides</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="tm-quick-actions">
+        <a asp-action="Users" class="tm-btn tm-btn-primary">Manage Users</a>
+        <a asp-action="Rides" class="tm-btn tm-btn-secondary">View All Rides</a>
+        <a asp-action="Payments" class="tm-btn tm-btn-secondary">Manage Payments</a>
+        <a asp-action="Vehicles" class="tm-btn tm-btn-secondary">View Vehicles</a>
+    </div>
+
+    <!-- Recent Rides -->
+    <div class="tm-admin-section">
+        <div class="tm-admin-section-header">
+            <h2>Recent Rides</h2>
+            <a asp-action="Rides" class="tm-link">View all →</a>
+        </div>
+
+        @if (Model.RecentRides.Any())
+        {
+            <div class="tm-table-container">
+                <table class="tm-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Passenger</th>
+                            <th>Driver</th>
+                            <th>Route</th>
+                            <th>Status</th>
+                            <th>Fare</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ride in Model.RecentRides)
+                        {
+                            <tr>
+                                <td>#@ride.Id</td>
+                                <td>@ride.PassengerName</td>
+                                <td>@ride.DriverName ?? "Unassigned"</td>
+                                <td>@ride.PickupZone → @ride.DestinationZone</td>
+                                <td>
+                                    <span class="tm-status-badge tm-status-@ride.Status.ToString().ToLower()">
+                                        @ride.Status
+                                    </span>
+                                </td>
+                                <td><span class="tm-taka">৳</span>@ride.Fare.ToString("N2")</td>
+                                <td>@ride.CreatedAt.ToString("MMM dd, HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="tm-empty-state">
+                <p>No rides yet</p>
+            </div>
+        }
+    </div>
+
+    <!-- Pending Refunds -->
+    @if (Model.PendingRefunds.Any())
+    {
+        <div class="tm-admin-section">
+            <div class="tm-admin-section-header">
+                <h2>Pending Refund Requests</h2>
+                <a asp-action="Payments" asp-route-status="RefundRequested" class="tm-link">View all →</a>
+            </div>
+
+            <div class="tm-table-container">
+                <table class="tm-table">
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Ride ID</th>
+                            <th>Passenger</th>
+                            <th>Amount</th>
+                            <th>Request Date</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var refund in Model.PendingRefunds)
+                        {
+                            <tr>
+                                <td>#@refund.PaymentId</td>
+                                <td>#@refund.RideId</td>
+                                <td>@refund.PassengerName</td>
+                                <td><span class="tm-taka">৳</span>@refund.Amount.ToString("N2")</td>
+                                <td>@refund.RequestDate.ToString("MMM dd, HH:mm")</td>
+                                <td>@refund.Notes</td>
+                                <td>
+                                    <form asp-action="ApproveRefund" method="post" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="paymentId" value="@refund.PaymentId" />
+                                        <button type="submit" class="tm-btn tm-btn-sm tm-btn-success">Approve</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</section>

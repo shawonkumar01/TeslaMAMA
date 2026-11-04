@@ -1,0 +1,77 @@
+@model TeslaMAMA.Models.AdminVehiclesViewModel
+
+@{
+    ViewData["Title"] = "Manage Vehicles";
+}
+
+<section class="tm-dashboard">
+    <!-- Header -->
+    <div class="tm-dashboard-header">
+        <div>
+            <p class="tm-eyebrow">ADMIN</p>
+            <h1>Manage Vehicles</h1>
+            <p>View all registered vehicles</p>
+        </div>
+        <a asp-action="Index" class="tm-btn tm-btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <!-- Vehicles Table -->
+    <div class="tm-table-container">
+        <table class="tm-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Vehicle Name</th>
+                    <th>Driver</th>
+                    <th>Capacity</th>
+                    <th>Current Zone</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Vehicles.Any())
+                {
+                    @foreach (var vehicle in Model.Vehicles)
+                    {
+                        <tr>
+                            <td>#@vehicle.Id</td>
+                            <td>@vehicle.Name</td>
+                            <td>@vehicle.DriverName ?? "Unassigned"</td>
+                            <td>@vehicle.Capacity seats</td>
+                            <td>@vehicle.CurrentZone</td>
+                            <td>
+                                <span class="tm-status-badge tm-status-@(vehicle.IsOnline ? "online" : "offline")">
+                                    @(vehicle.IsOnline ? "Online" : "Offline")
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="tm-empty-cell">No vehicles found</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="tm-pagination">
+            @if (Model.CurrentPage > 1)
+            {
+                <a asp-action="Vehicles" asp-route-page="@(Model.CurrentPage - 1)" class="tm-btn tm-btn-outline">Previous</a>
+            }
+
+            <span>Page @Model.CurrentPage of @Model.TotalPages</span>
+
+            @if (Model.CurrentPage < Model.TotalPages)
+            {
+                <a asp-action="Vehicles" asp-route-page="@(Model.CurrentPage + 1)" class="tm-btn tm-btn-outline">Next</a>
+            }
+        </div>
+    }
+</section>
