@@ -1,14 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using TeslaMAMA.Models;
+using TeslaMAMA.Services;
 
 namespace TeslaMAMA.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly IFareCalculationService _fareCalculator;
+
+        public HomeController(IFareCalculationService fareCalculator)
+        {
+            _fareCalculator = fareCalculator;
+        }
+
         public IActionResult Index()
         {
-            return View();
+            var model = new RideSearchViewModel
+            {
+                Zones = _fareCalculator.GetSupportedZones()
+            };
+
+            return View(model);
         }
 
         public IActionResult Privacy()

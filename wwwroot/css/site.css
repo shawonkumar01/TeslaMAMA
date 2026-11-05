@@ -551,6 +551,56 @@ textarea {
     font-weight: 700;
 }
 
+.tm-pooling-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border: 1px solid rgba(169, 229, 203, 0.3);
+    border-radius: 999px;
+    background: rgba(169, 229, 203, 0.15);
+    color: var(--tm-mint-300);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tm-pooling-toggle:hover {
+    background: rgba(169, 229, 203, 0.25);
+    border-color: rgba(169, 229, 203, 0.5);
+}
+
+.tm-toggle-slider {
+    width: 36px;
+    height: 20px;
+    background: rgba(169, 229, 203, 0.3);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.tm-toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--tm-mint-300);
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.tm-pooling-toggle.active .tm-toggle-slider {
+    background: var(--tm-green);
+}
+
+.tm-pooling-toggle.active .tm-toggle-slider::after {
+    transform: translateX(16px);
+}
+
 /* Route map: two stops joined by a dashed line, one car travelling */
 
 .tm-route-map {
